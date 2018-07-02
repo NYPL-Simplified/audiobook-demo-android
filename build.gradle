@@ -13,7 +13,7 @@ buildscript {
 }
 
 allprojects {
-  group = 'org.nypl.audiobook.demo.android'
+  group = 'org.nypl.audiobook'
   version = '0.0.1'
 
   apply plugin: 'maven'
@@ -21,7 +21,10 @@ allprojects {
 
 subprojects {
   repositories {
+
+    mavenCentral()
     mavenLocal()
+
     maven {
       credentials {
         username findProperty("org.librarysimplified.nexus.username")
@@ -29,6 +32,12 @@ subprojects {
       }
       url "https://nexus.librarysimplified.org:8443/nexus/content/groups/external/"
     }
+
+    maven {
+      url "http://maven.findawayworld.com/artifactory/libs-release/"
+    }
+
     jcenter()
+    google()
   }
 }
