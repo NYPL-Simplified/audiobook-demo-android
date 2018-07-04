@@ -149,9 +149,21 @@ data class RawMetadata(
   val encrypted: RawEncrypted?)
 
 sealed class RawScalar {
-  data class RawScalarString(val text: String) : RawScalar()
-  data class RawScalarNumber(val number: Double) : RawScalar()
-  data class RawScalarBoolean(val value: Boolean) : RawScalar()
+  data class RawScalarString(val text: String) : RawScalar() {
+    override fun toString(): String {
+      return this.text
+    }
+  }
+  data class RawScalarNumber(val number: Double) : RawScalar() {
+    override fun toString(): String {
+      return this.number.toString()
+    }
+  }
+  data class RawScalarBoolean(val value: Boolean) : RawScalar() {
+    override fun toString(): String {
+      return this.value.toString()
+    }
+  }
 }
 
 data class RawEncrypted(

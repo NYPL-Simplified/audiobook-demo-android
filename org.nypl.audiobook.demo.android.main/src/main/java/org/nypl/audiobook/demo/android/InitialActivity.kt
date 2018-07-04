@@ -50,12 +50,12 @@ class InitialActivity : Activity() {
       button.isEnabled = false
 
       val parameters =
-        FetchParameters(user = user, password = pass, fetchURI = uri)
+        PlayerParameters(user = user, password = pass, fetchURI = uri)
 
       val args = Bundle()
-      args.putSerializable(FetchActivity.FETCH_PARAMETERS_ID, parameters)
+      args.putSerializable(PlayerActivity.FETCH_PARAMETERS_ID, parameters)
 
-      val intent = Intent(this@InitialActivity, FetchActivity::class.java)
+      val intent = Intent(this@InitialActivity, PlayerActivity::class.java)
       intent.putExtras(args)
       this.startActivity(intent)
       this.finish()
