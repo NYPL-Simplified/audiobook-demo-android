@@ -88,7 +88,7 @@ class PlayerActivity : Activity() {
   private lateinit var state: PlayerState
 
   override fun onCreate(state: Bundle?) {
-    org.nypl.audiobook.demo.android.PlayerActivity.Companion.LOG.debug("onCreate")
+    LOG.debug("onCreate")
 
     super.onCreate(state)
 
@@ -130,7 +130,7 @@ class PlayerActivity : Activity() {
   }
 
   override fun onResume() {
-    org.nypl.audiobook.demo.android.PlayerActivity.Companion.LOG.debug("onResume")
+    LOG.debug("onResume")
 
     super.onResume()
     this.configurePlayerViewFromState(this.state)
@@ -209,7 +209,7 @@ class PlayerActivity : Activity() {
         .header("Authorization", credential)
         .build()
 
-    org.nypl.audiobook.demo.android.PlayerActivity.Companion.LOG.debug("fetching {}", parameters.fetchURI)
+    LOG.debug("fetching {}", parameters.fetchURI)
 
     val call = client.newCall(request)
     call.enqueue(object : Callback {
@@ -228,7 +228,7 @@ class PlayerActivity : Activity() {
    */
 
   private fun onURIFetchSuccess(response: Response) {
-    org.nypl.audiobook.demo.android.PlayerActivity.Companion.LOG.debug("onURIFetchSuccess: {}", response)
+    LOG.debug("onURIFetchSuccess: {}", response)
 
     UIThread.runOnUIThread(Runnable {
       val id = R.string.fetch_processing_manifest
@@ -248,7 +248,7 @@ class PlayerActivity : Activity() {
           is Result.Failure -> {
             ErrorDialogUtilities.showErrorWithRunnable(
               this@PlayerActivity,
-              org.nypl.audiobook.demo.android.PlayerActivity.Companion.LOG,
+              LOG,
               "Failed to parse manifest",
               result.failure,
               this.GO_BACK_TO_INITIAL_ACTIVITY)
@@ -260,7 +260,7 @@ class PlayerActivity : Activity() {
     } else {
       ErrorDialogUtilities.showErrorWithRunnable(
         this@PlayerActivity,
-        org.nypl.audiobook.demo.android.PlayerActivity.Companion.LOG,
+        LOG,
         "Server returned a failure message: " + response.code() + " " + response.message(),
         null,
         this.GO_BACK_TO_INITIAL_ACTIVITY)
@@ -268,7 +268,7 @@ class PlayerActivity : Activity() {
   }
 
   private fun onProcessManifest(result: RawManifest) {
-    org.nypl.audiobook.demo.android.PlayerActivity.Companion.LOG.debug("onProcessManifest")
+    LOG.debug("onProcessManifest")
 
     if (result.metadata.encrypted != null) {
       val encrypted = result.metadata.encrypted
@@ -281,7 +281,7 @@ class PlayerActivity : Activity() {
   }
 
   private fun onProcessManifestIsOther(result: RawManifest) {
-    org.nypl.audiobook.demo.android.PlayerActivity.Companion.LOG.debug("onProcessManifestIsOther")
+    LOG.debug("onProcessManifestIsOther")
 
     UIThread.runOnUIThread(Runnable {
       this.state = PlayerState.PlayerStateReceivedManifest(result)
@@ -290,7 +290,7 @@ class PlayerActivity : Activity() {
   }
 
   private fun onProcessManifestIsFindaway(result: RawManifest) {
-    org.nypl.audiobook.demo.android.PlayerActivity.Companion.LOG.debug("onProcessManifestIsFindaway")
+    LOG.debug("onProcessManifestIsFindaway")
 
     UIThread.runOnUIThread(Runnable {
       this.state = PlayerState.PlayerStateReceivedManifest(result)
@@ -300,9 +300,9 @@ class PlayerActivity : Activity() {
     val encrypted = result.metadata.encrypted!!
     val session = encrypted.values["findaway:sessionKey"].toString()
 
-    org.nypl.audiobook.demo.android.PlayerActivity.Companion.LOG.debug("initializing audio engine")
+    LOG.debug("initializing audio engine")
     AudioEngine.init(this, session, LogLevel.VERBOSE)
-    org.nypl.audiobook.demo.android.PlayerActivity.Companion.LOG.debug("initialized audio engine")
+    LOG.debug("initialized audio engine")
 
     val engine = AudioEngine.getInstance()
   }
@@ -310,7 +310,7 @@ class PlayerActivity : Activity() {
   private fun onURIFetchFailure(e: IOException?) {
     ErrorDialogUtilities.showErrorWithRunnable(
       this@PlayerActivity,
-      org.nypl.audiobook.demo.android.PlayerActivity.Companion.LOG,
+      LOG,
       "Failed to fetch URI",
       e,
       this.GO_BACK_TO_INITIAL_ACTIVITY)
