@@ -7,6 +7,10 @@ import java.io.IOException
 import java.io.InputStream
 import java.net.URI
 
+/**
+ * A raw manifest parsed from a server.
+ */
+
 data class RawManifest(
   val spine: List<RawSpineItem>,
   val links: List<RawLink>,
