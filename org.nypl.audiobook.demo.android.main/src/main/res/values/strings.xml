@@ -10,4 +10,5 @@
   <string name="fetch_processing_manifest">Processing manifest…</string>
   <string name="fetch_received_other_manifest">Received manifest.</string>
   <string name="fetch_received_findaway_manifest">Received Findaway manifest.</string>
+  <string name="player_toc_entry_download">Download</string>
 </resources>

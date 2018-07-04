@@ -3,10 +3,12 @@ package org.nypl.audiobook.demo.android
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
+import android.util.AttributeSet
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.Button
+import android.widget.FrameLayout
 import android.widget.ListView
 import android.widget.ProgressBar
 import android.widget.TextView
@@ -18,6 +20,8 @@ import okhttp3.Credentials
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
+import org.nypl.audiobook.demo.android.PlayerActivity.PlayerTOCEntry.PlayerTOCEntryDownloading
+import org.nypl.audiobook.demo.android.PlayerActivity.PlayerTOCEntry.PlayerTOCEntryInitial
 import org.nypl.audiobook.demo.android.main.R
 import org.slf4j.LoggerFactory
 import java.io.IOException
@@ -55,7 +59,7 @@ class PlayerActivity : Activity() {
      */
 
     data class PlayerStateWaitingForManifest(
-      val message : String) : PlayerState()
+      val message: String) : PlayerState()
 
     /**
      * The player has received a response from the server but doesn't yet know if the response
@@ -63,15 +67,23 @@ class PlayerActivity : Activity() {
      */
 
     data class PlayerStateReceivedResponse(
-      val message : String) : PlayerState()
+      val message: String) : PlayerState()
 
     /**
      * The player has received a manifest from the server.
      */
 
     data class PlayerStateReceivedManifest(
-      val manifest : RawManifest) : PlayerState()
+      val message: String,
+      val manifest: RawManifest) : PlayerState()
 
+    /**
+     * The player has configured the Findaway audio engine.
+     */
+
+    data class PlayerStateConfiguredFindaway(
+      val manifest: RawManifest,
+      val engine: AudioEngine) : PlayerState()
   }
 
   private lateinit var fetch_view: View
@@ -136,8 +148,7 @@ class PlayerActivity : Activity() {
     this.configurePlayerViewFromState(this.state)
   }
 
-  private fun configurePlayerViewFromState(state : PlayerState)
-  {
+  private fun configurePlayerViewFromState(state: PlayerState) {
     UIThread.checkIsUIThread()
 
     when (state) {
@@ -157,6 +168,13 @@ class PlayerActivity : Activity() {
       }
 
       is PlayerState.PlayerStateReceivedManifest -> {
+        this.fetch_view.visibility = View.VISIBLE
+        this.player_view.visibility = View.GONE
+        this.setContentView(this.fetch_view)
+        this.fetch_text.text = state.message
+      }
+
+      is PlayerState.PlayerStateConfiguredFindaway -> {
         this.fetch_view.visibility = View.GONE
         this.player_view.visibility = View.VISIBLE
         this.setContentView(this.player_view)
@@ -164,37 +182,100 @@ class PlayerActivity : Activity() {
         this.player_toc.adapter =
           PlayerTOCArrayAdapter(
             this,
-            state.manifest.spine.map { spine_item -> PlayerTOCEntry(spine_item) })
+            state.manifest.spine.map { spine_item -> PlayerTOCEntryInitial(spine_item) })
       }
     }
   }
 
-  private data class PlayerTOCEntry(
-    val spine_item : RawSpineItem,
-    var available : Double = 0.0)
+  /**
+   * The state of a TOC entry.
+   */
+
+  private sealed class PlayerTOCEntry {
+
+    abstract val spineItem: RawSpineItem
+
+    /**
+     * The initial state; no data is available.
+     */
+
+    data class PlayerTOCEntryInitial(
+      override val spineItem: RawSpineItem) : PlayerTOCEntry()
+
+    /**
+     * The TOC entry is currently downloading.
+     */
+
+    data class PlayerTOCEntryDownloading(
+      override val spineItem: RawSpineItem) : PlayerTOCEntry()
+  }
+
+  /**
+   * A reconfigurable view that shows the status of a TOC entry.
+   */
+
+  private class PlayerTOCEntryView(
+    context: Activity,
+    attrs: AttributeSet?) : FrameLayout(context, attrs) {
+
+    private var view_initial: ViewGroup
+    private var view_downloading: ViewGroup
+    private var view_initial_title: TextView
+    private var view_downloading_title: TextView
+    private var view_downloading_buttton: ProgressBar
+    private var view_initial_download: Button
+
+    init {
+      context.layoutInflater.inflate(R.layout.player_toc_entry, this, true)
+
+      this.view_initial =
+        this.findViewById(R.id.player_toc_entry_initial)
+      this.view_initial_title =
+        this.view_initial.findViewById(R.id.player_toc_entry_title)
+      this.view_initial_download =
+        this.view_initial.findViewById(R.id.player_toc_entry_download)
+
+      this.view_downloading =
+        this.findViewById(R.id.player_toc_entry_downloading)
+      this.view_downloading_title =
+        this.view_downloading.findViewById(R.id.player_toc_entry_title)
+      this.view_downloading_buttton =
+        this.view_downloading.findViewById(R.id.player_toc_entry_progress)
+    }
+
+    fun viewConfigure(item: PlayerTOCEntry) {
+      when (item) {
+        is PlayerTOCEntryInitial -> {
+          this.view_initial.visibility = View.VISIBLE
+          this.view_downloading.visibility = View.GONE
+          this.view_initial_title.text = item.spineItem.values["title"].toString()
+        }
+        is PlayerTOCEntryDownloading -> {
+          this.view_initial.visibility = View.GONE
+          this.view_downloading.visibility = View.VISIBLE
+          this.view_downloading_title.text = item.spineItem.values["title"].toString()
+        }
+      }
+    }
+  }
+
+  /**
+   * An array adapter for instantiating views for TOC entries.
+   */
 
   private class PlayerTOCArrayAdapter(
-    private val context : Activity,
-    private val items : List<PlayerTOCEntry>)
+    private val context: Activity,
+    private val items: List<PlayerTOCEntry>)
     : ArrayAdapter<PlayerTOCEntry>(context, R.layout.player_toc_entry, items) {
 
     override fun getView(
       position: Int,
-       reuse: View?,
-       parent: ViewGroup): View {
+      reuse: View?,
+      parent: ViewGroup): View {
 
       val item = this.items.get(position)
-      val inflater = this.context.getLayoutInflater()
-      val view = if (reuse != null) {
-        reuse
-      } else {
-        inflater.inflate(R.layout.player_toc_entry, parent, false)
-      }
-
-      val title_view = view.findViewById<TextView>(R.id.player_toc_entry_title)
-      val percent_view = view.findViewById<TextView>(R.id.player_toc_entry_percent)
-      title_view.text = item.spine_item.values["title"].toString()
-      percent_view.text = String.format("%.1f%%", item.available)
+      val view = reuse as PlayerTOCEntryView? ?: PlayerTOCEntryView(this.context, attrs = null)
+      view.viewConfigure(item)
       return view
     }
   }
@@ -267,37 +348,39 @@ class PlayerActivity : Activity() {
     }
   }
 
-  private fun onProcessManifest(result: RawManifest) {
+  private fun onProcessManifest(manifest: RawManifest) {
     this.log.debug("onProcessManifest")
 
-    if (result.metadata.encrypted != null) {
-      val encrypted = result.metadata.encrypted
+    if (manifest.metadata.encrypted != null) {
+      val encrypted = manifest.metadata.encrypted
       if (encrypted.scheme == "http://librarysimplified.org/terms/drm/scheme/FAE") {
-        this.onProcessManifestIsFindaway(result)
+        this.onProcessManifestIsFindaway(manifest)
       } else {
-        this.onProcessManifestIsOther(result)
+        this.onProcessManifestIsOther(manifest)
       }
     }
   }
 
-  private fun onProcessManifestIsOther(result: RawManifest) {
+  private fun onProcessManifestIsOther(manifest: RawManifest) {
     this.log.debug("onProcessManifestIsOther")
 
     UIThread.runOnUIThread(Runnable {
-      this.state = PlayerState.PlayerStateReceivedManifest(result)
+      this.state = PlayerState.PlayerStateReceivedManifest(
+        this.getString(R.string.fetch_received_other_manifest), manifest)
       this.configurePlayerViewFromState(this.state)
     })
   }
 
-  private fun onProcessManifestIsFindaway(result: RawManifest) {
+  private fun onProcessManifestIsFindaway(manifest: RawManifest) {
     this.log.debug("onProcessManifestIsFindaway")
 
     UIThread.runOnUIThread(Runnable {
-      this.state = PlayerState.PlayerStateReceivedManifest(result)
+      this.state = PlayerState.PlayerStateReceivedManifest(
+        this.getString(R.string.fetch_received_findaway_manifest), manifest)
       this.configurePlayerViewFromState(this.state)
     })
 
-    val encrypted = result.metadata.encrypted!!
+    val encrypted = manifest.metadata.encrypted!!
     val session = encrypted.values["findaway:sessionKey"].toString()
 
     this.log.debug("initializing audio engine")
@@ -305,6 +388,11 @@ class PlayerActivity : Activity() {
     this.log.debug("initialized audio engine")
 
     val engine = AudioEngine.getInstance()
+
+    UIThread.runOnUIThread(Runnable {
+      this.state = PlayerState.PlayerStateConfiguredFindaway(manifest, engine)
+      this.configurePlayerViewFromState(this.state)
+    })
   }
 
   private fun onURIFetchFailure(e: IOException?) {
