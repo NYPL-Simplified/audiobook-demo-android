@@ -6,7 +6,7 @@
   android:layout_height="match_parent">
 
   <ProgressBar
-    android:id="@+id/progressBar"
+    android:id="@+id/fetch_progress_bar"
     style="?android:attr/progressBarStyle"
     android:layout_width="178dp"
     android:layout_height="178dp"

@@ -1,8 +1,13 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <resources>
   <string name="app_name">NYPLAudioBookDemo</string>
+
   <string name="field_user_name">Username</string>
   <string name="field_password">Password</string>
   <string name="field_borrow_uri">Borrow URI</string>
-  <string name="fetch_requesting_manifest">Requesting manifest...</string>
+
+  <string name="fetch_requesting_manifest">Requesting manifest…</string>
+  <string name="fetch_processing_manifest">Processing manifest…</string>
+  <string name="fetch_received_other_manifest">Received manifest.</string>
+  <string name="fetch_received_findaway_manifest">Received Findaway manifest.</string>
 </resources>

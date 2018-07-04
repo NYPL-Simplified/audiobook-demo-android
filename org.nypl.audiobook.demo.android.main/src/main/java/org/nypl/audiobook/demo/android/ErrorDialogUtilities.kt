@@ -5,8 +5,7 @@ import android.app.AlertDialog
 import android.content.DialogInterface
 import org.slf4j.Logger
 
-class ErrorDialogUtilities
-{
+class ErrorDialogUtilities {
   companion object {
 
     /**
@@ -23,7 +22,7 @@ class ErrorDialogUtilities
       log: Logger,
       message: String,
       x: Throwable?) {
-      log.error("{}", message, x)
+      log.error("{}: ", message, x)
 
       UIThread.runOnUIThread(
         Runnable {
@@ -63,7 +62,7 @@ class ErrorDialogUtilities
       message: String,
       x: Throwable?,
       r: Runnable) {
-      log.error("{}", message, x)
+      log.error("{}: ", message, x)
 
       UIThread.runOnUIThread(
         Runnable {

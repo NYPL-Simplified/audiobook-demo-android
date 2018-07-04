@@ -35,7 +35,7 @@ task generatePropertiesResources {
   properties.setProperty("feed.user_name", user_name)
   properties.setProperty("feed.password", password)
   properties.setProperty("feed.borrow_uri", borrow_uri)
-  properties.store(new FileOutputStream(file), null)
+  properties.store(new FileOutputStream(file), "Automatically generated - DO NOT EDIT")
 }
 
 preBuild.dependsOn generatePropertiesResources
