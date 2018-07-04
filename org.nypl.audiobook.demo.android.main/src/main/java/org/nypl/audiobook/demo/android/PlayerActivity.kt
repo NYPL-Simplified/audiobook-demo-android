@@ -29,8 +29,6 @@ import java.io.IOException
 class PlayerActivity : Activity() {
 
   companion object {
-    private val LOG = LoggerFactory.getLogger(PlayerActivity::class.java)
-
     const val FETCH_PARAMETERS_ID = "org.nypl.audiobook.demo.android.PlayerActivity.PARAMETERS_ID"
   }
 
@@ -43,6 +41,8 @@ class PlayerActivity : Activity() {
     this.startActivity(intent)
     this.finish()
   }
+
+  private val log = LoggerFactory.getLogger(PlayerActivity::class.java)
 
   /**
    * The state of the player.
@@ -88,7 +88,7 @@ class PlayerActivity : Activity() {
   private lateinit var state: PlayerState
 
   override fun onCreate(state: Bundle?) {
-    LOG.debug("onCreate")
+    this.log.debug("onCreate")
 
     super.onCreate(state)
 
@@ -130,7 +130,7 @@ class PlayerActivity : Activity() {
   }
 
   override fun onResume() {
-    LOG.debug("onResume")
+    this.log.debug("onResume")
 
     super.onResume()
     this.configurePlayerViewFromState(this.state)
@@ -209,7 +209,7 @@ class PlayerActivity : Activity() {
         .header("Authorization", credential)
         .build()
 
-    LOG.debug("fetching {}", parameters.fetchURI)
+    this.log.debug("fetching {}", parameters.fetchURI)
 
     val call = client.newCall(request)
     call.enqueue(object : Callback {
@@ -228,7 +228,7 @@ class PlayerActivity : Activity() {
    */
 
   private fun onURIFetchSuccess(response: Response) {
-    LOG.debug("onURIFetchSuccess: {}", response)
+    this.log.debug("onURIFetchSuccess: {}", response)
 
     UIThread.runOnUIThread(Runnable {
       val id = R.string.fetch_processing_manifest
@@ -248,7 +248,7 @@ class PlayerActivity : Activity() {
           is Result.Failure -> {
             ErrorDialogUtilities.showErrorWithRunnable(
               this@PlayerActivity,
-              LOG,
+              this.log,
               "Failed to parse manifest",
               result.failure,
               this.GO_BACK_TO_INITIAL_ACTIVITY)
@@ -260,7 +260,7 @@ class PlayerActivity : Activity() {
     } else {
       ErrorDialogUtilities.showErrorWithRunnable(
         this@PlayerActivity,
-        LOG,
+        this.log,
         "Server returned a failure message: " + response.code() + " " + response.message(),
         null,
         this.GO_BACK_TO_INITIAL_ACTIVITY)
@@ -268,7 +268,7 @@ class PlayerActivity : Activity() {
   }
 
   private fun onProcessManifest(result: RawManifest) {
-    LOG.debug("onProcessManifest")
+    this.log.debug("onProcessManifest")
 
     if (result.metadata.encrypted != null) {
       val encrypted = result.metadata.encrypted
@@ -281,7 +281,7 @@ class PlayerActivity : Activity() {
   }
 
   private fun onProcessManifestIsOther(result: RawManifest) {
-    LOG.debug("onProcessManifestIsOther")
+    this.log.debug("onProcessManifestIsOther")
 
     UIThread.runOnUIThread(Runnable {
       this.state = PlayerState.PlayerStateReceivedManifest(result)
@@ -290,7 +290,7 @@ class PlayerActivity : Activity() {
   }
 
   private fun onProcessManifestIsFindaway(result: RawManifest) {
-    LOG.debug("onProcessManifestIsFindaway")
+    this.log.debug("onProcessManifestIsFindaway")
 
     UIThread.runOnUIThread(Runnable {
       this.state = PlayerState.PlayerStateReceivedManifest(result)
@@ -300,9 +300,9 @@ class PlayerActivity : Activity() {
     val encrypted = result.metadata.encrypted!!
     val session = encrypted.values["findaway:sessionKey"].toString()
 
-    LOG.debug("initializing audio engine")
+    this.log.debug("initializing audio engine")
     AudioEngine.init(this, session, LogLevel.VERBOSE)
-    LOG.debug("initialized audio engine")
+    this.log.debug("initialized audio engine")
 
     val engine = AudioEngine.getInstance()
   }
@@ -310,7 +310,7 @@ class PlayerActivity : Activity() {
   private fun onURIFetchFailure(e: IOException?) {
     ErrorDialogUtilities.showErrorWithRunnable(
       this@PlayerActivity,
-      LOG,
+      this.log,
       "Failed to fetch URI",
       e,
       this.GO_BACK_TO_INITIAL_ACTIVITY)
