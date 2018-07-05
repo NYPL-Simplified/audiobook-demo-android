@@ -16,5 +16,6 @@
   <string name="player_toc_entry_download">Download</string>
   <string name="player_toc_entry_dismiss">Dismiss</string>
   <string name="player_toc_entry_cancel">Cancel</string>
+  <string name="player_toc_entry_delete">Delete</string>
 
 </resources>

@@ -222,6 +222,10 @@ class PlayerActivity : Activity() {
     private var view_download_failed_text: TextView
     private var view_download_failed_dismiss: Button
 
+    private var view_downloaded: ViewGroup
+    private var view_downloaded_title: TextView
+    private var view_downloaded_delete: Button
+
     private lateinit var item: PlayerSpineElementType
 
     init {
@@ -250,9 +254,19 @@ class PlayerActivity : Activity() {
       this.view_download_failed_dismiss =
         this.view_download_failed.findViewById(R.id.player_toc_entry_download_failed_dismiss)
 
+      this.view_downloaded =
+        this.findViewById(R.id.player_toc_entry_downloaded)
+      this.view_downloaded_title =
+        this.view_downloaded.findViewById(R.id.player_toc_entry_downloaded_title)
+      this.view_downloaded_delete =
+        this.view_downloaded.findViewById(R.id.player_toc_entry_downloaded_delete)
+
       this.view_initial.visibility = View.VISIBLE
       this.view_downloading.visibility = View.GONE
       this.view_download_failed.visibility = View.GONE
+      this.view_downloaded.visibility = View.GONE
+
+      this.view_downloading_progress.max = 100
     }
 
     fun viewConfigure(item: PlayerSpineElementType) {
@@ -261,18 +275,21 @@ class PlayerActivity : Activity() {
       this.item = item
       this.view_initial_title.text = item.title
       this.view_downloading_title.text = item.title
+      this.view_downloaded_title.text = item.title
 
       val status = item.status
       when (status) {
         is PlayerSpineElementInitial -> {
           this.view_downloading.visibility = View.GONE
           this.view_download_failed.visibility = View.GONE
+          this.view_downloaded.visibility = View.GONE
           this.view_initial.visibility = View.VISIBLE
           this.view_initial_download.setOnClickListener { item.downloadTask.fetch() }
         }
         is PlayerSpineElementDownloadFailed -> {
           this.view_downloading.visibility = View.GONE
           this.view_download_failed.visibility = View.VISIBLE
+          this.view_downloaded.visibility = View.GONE
           this.view_initial.visibility = View.GONE
           this.view_download_failed_text.text = status.message
           this.view_download_failed_dismiss.setOnClickListener { item.downloadTask.delete() }
@@ -280,12 +297,15 @@ class PlayerActivity : Activity() {
         is PlayerSpineElementDownloaded -> {
           this.view_downloading.visibility = View.GONE
           this.view_download_failed.visibility = View.GONE
-          this.view_initial.visibility = View.VISIBLE
+          this.view_downloaded.visibility = View.VISIBLE
+          this.view_initial.visibility = View.GONE
         }
         is PlayerSpineElementDownloading -> {
           this.view_downloading.visibility = View.VISIBLE
           this.view_download_failed.visibility = View.GONE
+          this.view_downloaded.visibility = View.GONE
           this.view_initial.visibility = View.GONE
+          this.view_downloading_progress.progress = status.progress
           this.view_downloading_cancel.setOnClickListener { item.downloadTask.delete() }
         }
       }

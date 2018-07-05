@@ -7,5 +7,6 @@
   <include layout="@layout/player_toc_entry_initial" />
   <include layout="@layout/player_toc_entry_downloading" />
   <include layout="@layout/player_toc_entry_download_failed" />
+  <include layout="@layout/player_toc_entry_downloaded" />
 
 </merge>
