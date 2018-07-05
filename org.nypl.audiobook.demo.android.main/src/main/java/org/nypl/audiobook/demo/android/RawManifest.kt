@@ -154,11 +154,13 @@ sealed class RawScalar {
       return this.text
     }
   }
+
   data class RawScalarNumber(val number: Double) : RawScalar() {
     override fun toString(): String {
       return this.number.toString()
     }
   }
+
   data class RawScalarBoolean(val value: Boolean) : RawScalar() {
     override fun toString(): String {
       return this.value.toString()
