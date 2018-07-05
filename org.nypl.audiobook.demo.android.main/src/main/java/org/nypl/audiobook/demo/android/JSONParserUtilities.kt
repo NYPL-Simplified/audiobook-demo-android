@@ -520,7 +520,12 @@ class JSONParserUtilities private constructor() {
 
         JsonNodeType.NULL -> return null
         JsonNodeType.BOOLEAN -> return RawScalar.RawScalarBoolean(v.asBoolean())
-        JsonNodeType.NUMBER -> return RawScalar.RawScalarNumber(v.asDouble())
+        JsonNodeType.NUMBER ->
+          if (v.isIntegralNumber) {
+            return RawScalar.RawScalarNumber.RawScalarInteger(v.asInt())
+          } else {
+            return RawScalar.RawScalarNumber.RawScalarReal(v.asDouble())
+          }
         JsonNodeType.STRING -> return RawScalar.RawScalarString(v.asText())
       }
     }

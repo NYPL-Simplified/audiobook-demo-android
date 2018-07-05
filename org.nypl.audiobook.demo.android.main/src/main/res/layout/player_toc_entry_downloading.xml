@@ -16,12 +16,29 @@
     android:textAppearance="@android:style/TextAppearance.Medium" />
 
   <ProgressBar
+    android:id="@+id/player_toc_entry_downloading_spinner"
+    style="?android:attr/progressBarStyle"
+    android:layout_width="16dp"
+    android:layout_height="16dp"
+    android:layout_toRightOf="@+id/player_toc_entry_downloading_title"
+    android:layout_centerVertical="true" />
+
+  <Button
+    android:id="@+id/player_toc_entry_downloading_cancel"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_alignParentRight="true"
+    android:layout_centerVertical="true"
+    android:layout_margin="16dp"
+    android:text="@string/player_toc_entry_cancel" />
+
+  <ProgressBar
     android:id="@+id/player_toc_entry_downloading_progress"
     style="?android:attr/progressBarStyleHorizontal"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_toRightOf="@id/player_toc_entry_downloading_title"
-    android:layout_alignParentRight="true"
+    android:layout_toRightOf="@id/player_toc_entry_downloading_spinner"
+    android:layout_toLeftOf="@id/player_toc_entry_downloading_cancel"
     android:layout_centerVertical="true"
     android:layout_margin="16dp" />
 

@@ -155,9 +155,16 @@ sealed class RawScalar {
     }
   }
 
-  data class RawScalarNumber(val number: Double) : RawScalar() {
-    override fun toString(): String {
-      return this.number.toString()
+  sealed class RawScalarNumber : RawScalar() {
+    data class RawScalarReal(val number: Double) : RawScalarNumber() {
+      override fun toString(): String {
+        return this.number.toString()
+      }
+    }
+    data class RawScalarInteger(val number: Int) : RawScalarNumber() {
+      override fun toString(): String {
+        return this.number.toString()
+      }
     }
   }
 

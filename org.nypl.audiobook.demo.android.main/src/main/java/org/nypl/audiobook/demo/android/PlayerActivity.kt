@@ -12,8 +12,6 @@ import android.widget.FrameLayout
 import android.widget.ListView
 import android.widget.ProgressBar
 import android.widget.TextView
-import io.audioengine.mobile.AudioEngine
-import io.audioengine.mobile.config.LogLevel
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.Credentials
@@ -28,6 +26,7 @@ import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus.PlayerSpineE
 import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus.PlayerSpineElementInitial
 import org.nypl.audiobook.demo.android.api.PlayerSpineElementType
 import org.nypl.audiobook.demo.android.findaway.PlayerFindawayAudioBook
+import org.nypl.audiobook.demo.android.findaway.PlayerFindawayManifest
 import org.nypl.audiobook.demo.android.main.R
 import org.slf4j.LoggerFactory
 import rx.Subscription
@@ -211,13 +210,15 @@ class PlayerActivity : Activity() {
     attrs: AttributeSet?) : FrameLayout(context, attrs) {
 
     private var view_initial: ViewGroup
-    private var view_downloading: ViewGroup
-    private var view_download_failed: ViewGroup
-
     private var view_initial_title: TextView
-    private var view_downloading_title: TextView
-    private var view_downloading_buttton: ProgressBar
     private var view_initial_download: Button
+
+    private var view_downloading: ViewGroup
+    private var view_downloading_title: TextView
+    private var view_downloading_progress: ProgressBar
+    private var view_downloading_cancel: Button
+
+    private var view_download_failed: ViewGroup
     private var view_download_failed_text: TextView
     private var view_download_failed_dismiss: Button
 
@@ -237,8 +238,10 @@ class PlayerActivity : Activity() {
         this.findViewById(R.id.player_toc_entry_downloading)
       this.view_downloading_title =
         this.view_downloading.findViewById(R.id.player_toc_entry_downloading_title)
-      this.view_downloading_buttton =
+      this.view_downloading_progress =
         this.view_downloading.findViewById(R.id.player_toc_entry_downloading_progress)
+      this.view_downloading_cancel =
+        this.view_downloading.findViewById(R.id.player_toc_entry_downloading_cancel)
 
       this.view_download_failed =
         this.findViewById(R.id.player_toc_entry_download_failed)
@@ -283,6 +286,7 @@ class PlayerActivity : Activity() {
           this.view_downloading.visibility = View.VISIBLE
           this.view_download_failed.visibility = View.GONE
           this.view_initial.visibility = View.GONE
+          this.view_downloading_cancel.setOnClickListener { item.downloadTask.delete() }
         }
       }
     }
@@ -409,31 +413,34 @@ class PlayerActivity : Activity() {
       this.configurePlayerViewFromState(this.state)
     })
 
-    /*
-     * Initialize the audio engine and configure the player state.
-     */
+    val manifest_result = PlayerFindawayManifest.transform(manifest)
+    when (manifest_result) {
+      is Result.Failure -> {
+        throw manifest_result.failure
+      }
 
-    val encrypted = manifest.metadata.encrypted!!
-    val session = encrypted.values["findaway:sessionKey"].toString()
+      is Result.Success -> {
 
-    this.log.debug("initializing audio engine")
-    AudioEngine.init(this, session, LogLevel.VERBOSE)
-    this.log.debug("initialized audio engine")
+        /*
+         * Initialize the audio engine and configure the player state.
+         */
 
-    val book = PlayerFindawayAudioBook.create(manifest, AudioEngine.getInstance())
+        val book = PlayerFindawayAudioBook.create(this, manifest_result.result)
 
-    UIThread.runOnUIThread(Runnable {
-      this.state = PlayerState.PlayerStateConfigured(book)
-      this.configurePlayerViewFromState(this.state)
-    })
+        UIThread.runOnUIThread(Runnable {
+          this.state = PlayerState.PlayerStateConfigured(book)
+          this.configurePlayerViewFromState(this.state)
+        })
 
-    /*
-     * Subscribe to spine element status updates.
-     */
+        /*
+         * Subscribe to spine element status updates.
+         */
 
-    this.spine_element_subscription = book.spineElementStatusUpdates.subscribe(
-      { event -> this.onSpineElementStatusChanged(book, event!!) },
-      { event -> this.onSpineElementStatusError(book, event!!) })
+        this.spine_element_subscription = book.spineElementStatusUpdates.subscribe(
+          { event -> this.onSpineElementStatusChanged(book, event!!) },
+          { event -> this.onSpineElementStatusError(book, event!!) })
+      }
+    }
   }
 
   private fun onSpineElementStatusError(
