@@ -25,6 +25,10 @@ import rx.subjects.PublishSubject
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 
+/**
+ * A Findaway based implementation of the {@link PlayerAudioBookType} interface.
+ */
+
 class PlayerFindawayAudioBook private constructor(
   private val manifest: PlayerFindawayManifest,
   private val engine: AudioEngine,
@@ -139,11 +143,6 @@ class PlayerFindawayAudioBook private constructor(
 
     private fun onDownloadFinished() {
       this.log.debug("onDownloadFinished: {}", this.spine_element.id)
-
-      /*
-       * Findaway will redundantly publish DOWNLOADED status updates for books hundreds of times.
-       */
-
       this.downloading.set(false)
       this.status_map.update(PlayerSpineElementDownloaded(this.spine_element.id))
     }
