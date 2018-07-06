@@ -161,6 +161,7 @@ sealed class RawScalar {
         return this.number.toString()
       }
     }
+
     data class RawScalarInteger(val number: Int) : RawScalarNumber() {
       override fun toString(): String {
         return this.number.toString()

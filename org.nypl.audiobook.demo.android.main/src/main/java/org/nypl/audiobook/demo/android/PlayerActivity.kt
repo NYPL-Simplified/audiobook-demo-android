@@ -19,7 +19,6 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 import org.nypl.audiobook.demo.android.api.PlayerAudioBookType
-import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus
 import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus.PlayerSpineElementDownloadFailed
 import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus.PlayerSpineElementDownloaded
 import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus.PlayerSpineElementDownloading
@@ -299,6 +298,7 @@ class PlayerActivity : Activity() {
           this.view_download_failed.visibility = View.GONE
           this.view_downloaded.visibility = View.VISIBLE
           this.view_initial.visibility = View.GONE
+          this.view_downloaded_delete.setOnClickListener { item.downloadTask.delete() }
         }
         is PlayerSpineElementDownloading -> {
           this.view_downloading.visibility = View.VISIBLE
@@ -442,23 +442,36 @@ class PlayerActivity : Activity() {
       is Result.Success -> {
 
         /*
-         * Initialize the audio engine and configure the player state.
+         * Create the audio book.
          */
 
         val book = PlayerFindawayAudioBook.create(this, manifest_result.result)
-
-        UIThread.runOnUIThread(Runnable {
-          this.state = PlayerState.PlayerStateConfigured(book)
-          this.configurePlayerViewFromState(this.state)
-        })
 
         /*
          * Subscribe to spine element status updates.
          */
 
         this.spine_element_subscription = book.spineElementStatusUpdates.subscribe(
-          { event -> this.onSpineElementStatusChanged(book, event!!) },
+          { event -> this.onSpineElementStatusChanged(book) },
           { event -> this.onSpineElementStatusError(book, event!!) })
+
+        /*
+         * Configure the view state.
+         */
+
+        UIThread.runOnUIThread(Runnable {
+          this.state = PlayerState.PlayerStateConfigured(book)
+          this.configurePlayerViewFromState(this.state)
+        })
+
+        this.log.debug("onProcessManifestIsFindaway: finished")
+
+        /*
+         * The book has been opened, status updates have been issued for all of the parts. Now
+         * tell the UI that everything has been updated.
+         */
+
+        this.onSpineElementStatusChanged(book)
       }
     }
   }
@@ -471,8 +484,7 @@ class PlayerActivity : Activity() {
   }
 
   private fun onSpineElementStatusChanged(
-    book: PlayerAudioBookType,
-    event: PlayerSpineElementStatus) {
+    book: PlayerAudioBookType) {
 
     /*
      * Notify the table of contents that the contents of the list it is displaying has changed.

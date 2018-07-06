@@ -30,7 +30,7 @@ data class PlayerFindawayManifest(
 
   companion object {
 
-    private fun valueString(map : Map<String, RawScalar?>, key : String) : String {
+    private fun valueString(map: Map<String, RawScalar?>, key: String): String {
       return (map[key] ?: throw IllegalArgumentException(
         StringBuilder(128)
           .append("Missing required key.\n")
@@ -40,7 +40,7 @@ data class PlayerFindawayManifest(
           .toString())).toString()
     }
 
-    private fun valueDouble(map : Map<String, RawScalar?>, key : String) : Double {
+    private fun valueDouble(map: Map<String, RawScalar?>, key: String): Double {
       try {
         return (map[key] ?: throw IllegalArgumentException(
           StringBuilder(128)
@@ -60,7 +60,7 @@ data class PlayerFindawayManifest(
       }
     }
 
-    private fun valueInt(map : Map<String, RawScalar?>, key : String) : Int {
+    private fun valueInt(map: Map<String, RawScalar?>, key: String): Int {
       try {
         return (map[key] ?: throw IllegalArgumentException(
           StringBuilder(128)

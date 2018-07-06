@@ -4,13 +4,17 @@ import android.content.Context
 import io.audioengine.mobile.AudioEngine
 import io.audioengine.mobile.DownloadStatus
 import io.audioengine.mobile.config.LogLevel
+import io.audioengine.mobile.persistence.DeleteRequest
 import io.audioengine.mobile.persistence.DownloadRequest
 import io.audioengine.mobile.persistence.DownloadType
 import org.nypl.audiobook.demo.android.api.PlayerAudioBookType
 import org.nypl.audiobook.demo.android.api.PlayerChapterLocationType
 import org.nypl.audiobook.demo.android.api.PlayerDownloadTaskType
 import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus
-import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus.*
+import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus.PlayerSpineElementDownloadFailed
+import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus.PlayerSpineElementDownloaded
+import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus.PlayerSpineElementDownloading
+import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus.PlayerSpineElementInitial
 import org.nypl.audiobook.demo.android.api.PlayerSpineElementType
 import org.nypl.audiobook.demo.android.api.PlayerType
 import org.nypl.audiobook.demo.android.findaway.PlayerFindawayManifest.PlayerFindawayManifestSpineItem
@@ -50,9 +54,26 @@ class PlayerFindawayAudioBook private constructor(
     private val downloader = this.engine.downloadEngine
 
     private val downloading = AtomicBoolean()
-    private var download_subscription_status: Subscription? = null
-    private var download_subscription_progress: Subscription? = null
     private var download_request: DownloadRequest? = null
+    private var download_progress: Int = 0
+
+    private val download_subscription_status: Subscription =
+      this.downloader.getStatus(
+        this.manifest.fulfillmentId,
+        this.spine_element.manifest.part,
+        this.spine_element.manifest.chapter)
+        .subscribe(
+          { status -> this.onDownloadStatus(status) },
+          { error -> this.onDownloadError(error) })
+
+    private val download_subscription_progress: Subscription =
+      this.downloader.getProgress(
+        this.manifest.fulfillmentId,
+        this.spine_element.manifest.part,
+        this.spine_element.manifest.chapter)
+        .subscribe(
+          { status -> this.onDownloadProgress(status) },
+          { error -> this.onDownloadError(error) })
 
     override fun fetch() {
       if (this.downloading.compareAndSet(false, true)) {
@@ -69,100 +90,103 @@ class PlayerFindawayAudioBook private constructor(
             .build()
 
         this.downloader.download(request)
-
-        val status_observable =
-          this.downloader.getStatus(
-            this.manifest.fulfillmentId,
-            this.spine_element.manifest.part,
-            this.spine_element.manifest.chapter)
-
-        val progress_observable =
-          this.downloader.getProgress(
-            this.manifest.fulfillmentId,
-            this.spine_element.manifest.part,
-            this.spine_element.manifest.chapter)
-
         this.download_request = request
-        this.download_subscription_status =
-          status_observable.subscribe(
-            { status -> this.onDownloadStatus(status) },
-            { error -> this.onDownloadError(error) })
-        this.download_subscription_progress =
-          progress_observable.subscribe(
-            { status -> this.onDownloadProgress(status) },
-            { error -> this.onDownloadError(error) })
       }
     }
 
     private fun onDownloadProgress(progress: Int?) {
-      this.log.debug("onDownloadProgress: {}", progress)
+      this.log.trace("onDownloadProgress: {}: {}", this.spine_element.id, progress)
 
       if (this.downloading.get()) {
-        this.status_map.update(PlayerSpineElementDownloading(
-          this.spine_element.id, progress ?: 0))
+        val prog = progress ?: 0
+        this.status_map.update(PlayerSpineElementDownloading(this.spine_element.id, prog))
+        this.download_progress = prog
       }
     }
 
     private fun onDownloadError(error: Throwable?) {
-      this.log.error("onDownloadError: ", error)
+      this.log.error("onDownloadError: {}: ", this.spine_element.id, error)
+
+      if (this.downloading.compareAndSet(true, false)) {
+        val exception = Exception(error)
+        this.status_map.update(PlayerSpineElementDownloadFailed(
+          this.spine_element.id,
+          exception,
+          "Download failed!"))
+      }
     }
 
     private fun onDownloadStatus(status: DownloadStatus?) {
-      this.log.debug("onDownloadStatus: {}", status)
+      this.log.trace("onDownloadStatus: {}: {}", this.spine_element.id, status)
 
-      if (this.downloading.get()) {
-        when (status) {
-          DownloadStatus.NOT_DOWNLOADED -> { }
-          DownloadStatus.DOWNLOADED -> {
-            this.onDownloadFinished()
-          }
-          DownloadStatus.DOWNLOADING -> { }
-          DownloadStatus.QUEUED -> { }
-          DownloadStatus.PAUSED -> { }
-          null -> {
+      when (status) {
+        DownloadStatus.NOT_DOWNLOADED -> {
+        }
+        DownloadStatus.DOWNLOADED -> {
+          this.onDownloadFinished()
+        }
+        DownloadStatus.DOWNLOADING -> {
+        }
+        DownloadStatus.QUEUED -> {
+        }
+        DownloadStatus.PAUSED -> {
+        }
+        null -> {
 
-          }
         }
       }
     }
 
     private fun onDownloadFinished() {
-      if (this.downloading.compareAndSet(true, false)) {
-        this.log.debug("onDownloadFinished")
-        this.cleanUpSubscriptions()
-        this.status_map.update(PlayerSpineElementDownloaded(this.spine_element.id))
-      }
+      this.log.debug("onDownloadFinished: {}", this.spine_element.id)
+
+      /*
+       * Findaway will redundantly publish DOWNLOADED status updates for books hundreds of times.
+       */
+
+      this.downloading.set(false)
+      this.status_map.update(PlayerSpineElementDownloaded(this.spine_element.id))
     }
 
     override fun delete() {
+
+      /*
+       * If a download is in progress, cancel it.
+       */
+
       if (this.downloading.compareAndSet(true, false)) {
         this.log.debug("cancelling download")
         val request = this.download_request
         if (request != null) {
           this.downloader.cancel(request)
         }
-        this.cleanUpSubscriptions()
       }
 
+      /*
+       * Request deletion of the local content.
+       */
+
+      val request =
+        DownloadRequest.builder()
+          .chapter(this.spine_element.manifest.chapter)
+          .part(this.spine_element.manifest.part)
+          .licenseId(this.manifest.licenseId)
+          .type(DownloadType.SINGLE)
+          .contentId(this.manifest.fulfillmentId)
+          .build()
+
+      val delete_request =
+        DeleteRequest.builder()
+          .downloadRequest(request)
+          .contentId(this.manifest.fulfillmentId)
+          .build()
+
+      this.downloader.delete(delete_request)
       this.status_map.update(PlayerSpineElementInitial(this.spine_element.id))
     }
 
-    private fun cleanUpSubscriptions() {
-      this.download_subscription_status =
-        this.unsubscribe(this.download_subscription_status)
-      this.download_subscription_progress =
-        this.unsubscribe(this.download_subscription_progress)
-    }
-
-    private fun unsubscribe(sub: Subscription?): Subscription? {
-      if (sub != null) {
-        sub.unsubscribe()
-      }
-      return null
-    }
-
     override val progress: Double
-      get() = 0.0
+      get() = this.download_progress.toDouble()
 
     override val id: String
       get() = this.spine_element.id
@@ -184,7 +208,7 @@ class PlayerFindawayAudioBook private constructor(
     }
 
     fun status(id: String): PlayerSpineElementStatus {
-      return this.status_map[id] ?: throw IllegalArgumentException("Unknown spine element: " + id)
+      return this.status_map[id] ?: PlayerSpineElementInitial(id)
     }
   }
 
@@ -246,7 +270,6 @@ class PlayerFindawayAudioBook private constructor(
         val element = PlayerFindawaySpineElement(book, engine, status_map, spine_item)
         elements.add(element)
         elements_by_id.put(element.id, element)
-        status_map.update(PlayerSpineElementInitial(element.id))
       }
 
       return book
