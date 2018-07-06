@@ -47,4 +47,11 @@ sealed class PlayerSpineElementStatus {
     override val id: String)
     : PlayerSpineElementStatus()
 
+  /**
+   * The spine element is currently playing.
+   */
+
+  data class PlayerSpineElementPlaying(
+    override val id: String)
+    : PlayerSpineElementStatus()
 }

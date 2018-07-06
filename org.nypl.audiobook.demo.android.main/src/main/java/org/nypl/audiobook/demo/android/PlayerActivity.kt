@@ -19,10 +19,12 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 import org.nypl.audiobook.demo.android.api.PlayerAudioBookType
+import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus
 import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus.PlayerSpineElementDownloadFailed
 import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus.PlayerSpineElementDownloaded
 import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus.PlayerSpineElementDownloading
 import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus.PlayerSpineElementInitial
+import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus.PlayerSpineElementPlaying
 import org.nypl.audiobook.demo.android.api.PlayerSpineElementType
 import org.nypl.audiobook.demo.android.findaway.PlayerFindawayAudioBook
 import org.nypl.audiobook.demo.android.findaway.PlayerFindawayManifest
@@ -225,6 +227,9 @@ class PlayerActivity : Activity() {
     private var view_downloaded_title: TextView
     private var view_downloaded_delete: Button
 
+    private var view_playing: ViewGroup
+    private var view_playing_title: TextView
+
     private lateinit var item: PlayerSpineElementType
 
     init {
@@ -236,6 +241,11 @@ class PlayerActivity : Activity() {
         this.view_initial.findViewById(R.id.player_toc_entry_initial_title)
       this.view_initial_download =
         this.view_initial.findViewById(R.id.player_toc_entry_initial_download)
+
+      this.view_playing =
+        this.findViewById(R.id.player_toc_entry_playing)
+      this.view_playing_title =
+        this.view_playing.findViewById(R.id.player_toc_entry_playing_title)
 
       this.view_downloading =
         this.findViewById(R.id.player_toc_entry_downloading)
@@ -264,6 +274,7 @@ class PlayerActivity : Activity() {
       this.view_downloading.visibility = View.GONE
       this.view_download_failed.visibility = View.GONE
       this.view_downloaded.visibility = View.GONE
+      this.view_playing.visibility = View.GONE
 
       this.view_downloading_progress.max = 100
     }
@@ -275,6 +286,7 @@ class PlayerActivity : Activity() {
       this.view_initial_title.text = item.title
       this.view_downloading_title.text = item.title
       this.view_downloaded_title.text = item.title
+      this.view_playing_title.text = item.title
 
       val status = item.status
       when (status) {
@@ -283,6 +295,7 @@ class PlayerActivity : Activity() {
           this.view_download_failed.visibility = View.GONE
           this.view_downloaded.visibility = View.GONE
           this.view_initial.visibility = View.VISIBLE
+          this.view_playing.visibility = View.GONE
           this.view_initial_download.setOnClickListener { item.downloadTask.fetch() }
         }
         is PlayerSpineElementDownloadFailed -> {
@@ -290,6 +303,7 @@ class PlayerActivity : Activity() {
           this.view_download_failed.visibility = View.VISIBLE
           this.view_downloaded.visibility = View.GONE
           this.view_initial.visibility = View.GONE
+          this.view_playing.visibility = View.GONE
           this.view_download_failed_text.text = status.message
           this.view_download_failed_dismiss.setOnClickListener { item.downloadTask.delete() }
         }
@@ -298,6 +312,7 @@ class PlayerActivity : Activity() {
           this.view_download_failed.visibility = View.GONE
           this.view_downloaded.visibility = View.VISIBLE
           this.view_initial.visibility = View.GONE
+          this.view_playing.visibility = View.GONE
           this.view_downloaded_delete.setOnClickListener { item.downloadTask.delete() }
         }
         is PlayerSpineElementDownloading -> {
@@ -305,8 +320,16 @@ class PlayerActivity : Activity() {
           this.view_download_failed.visibility = View.GONE
           this.view_downloaded.visibility = View.GONE
           this.view_initial.visibility = View.GONE
+          this.view_playing.visibility = View.GONE
           this.view_downloading_progress.progress = status.progress
           this.view_downloading_cancel.setOnClickListener { item.downloadTask.delete() }
+        }
+        is PlayerSpineElementPlaying -> {
+          this.view_downloading.visibility = View.GONE
+          this.view_download_failed.visibility = View.GONE
+          this.view_downloaded.visibility = View.GONE
+          this.view_initial.visibility = View.GONE
+          this.view_playing.visibility = View.VISIBLE
         }
       }
     }
