@@ -8,8 +8,8 @@ import io.audioengine.mobile.persistence.DeleteRequest
 import io.audioengine.mobile.persistence.DownloadRequest
 import io.audioengine.mobile.persistence.DownloadType
 import org.nypl.audiobook.demo.android.api.PlayerAudioBookType
-import org.nypl.audiobook.demo.android.api.PlayerChapterLocationType
 import org.nypl.audiobook.demo.android.api.PlayerDownloadTaskType
+import org.nypl.audiobook.demo.android.api.PlayerPosition
 import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus
 import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus.PlayerSpineElementDownloadFailed
 import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus.PlayerSpineElementDownloaded
@@ -30,11 +30,13 @@ import java.util.concurrent.atomic.AtomicBoolean
  */
 
 class PlayerFindawayAudioBook private constructor(
-  private val manifest: PlayerFindawayManifest,
+  val manifest: PlayerFindawayManifest,
   private val engine: AudioEngine,
   override val spine: List<PlayerFindawaySpineElement>,
   override val spineByID: Map<String, PlayerFindawaySpineElement>,
   private val status_map: PlayerFindawaySpineElementStatusMap) : PlayerAudioBookType {
+
+  private val findaway_player: PlayerFindaway = PlayerFindaway(this, this.engine)
 
   init {
     if (this.spine.size != this.spineByID.size) {
@@ -42,6 +44,18 @@ class PlayerFindawayAudioBook private constructor(
         "Spine size " + this.spine.size + " must match spineByID size " + this.spineByID.size)
     }
   }
+
+  override val uniqueIdentifier: String
+    get() = this.manifest.id
+
+  override val player: PlayerType
+    get() = this.findaway_player
+
+  override val title: String
+    get() = this.manifest.title
+
+  override val spineElementStatusUpdates: Observable<PlayerSpineElementStatus>
+    get() = this.status_map.observable
 
   /**
    * A download task capable of fetching a single spine item.
@@ -221,6 +235,9 @@ class PlayerFindawayAudioBook private constructor(
     private val status_map: PlayerFindawaySpineElementStatusMap,
     val manifest: PlayerFindawayManifestSpineItem) : PlayerSpineElementType {
 
+    override val position: PlayerPosition
+      get() = PlayerPosition(this.manifest.title, this.manifest.part, this.manifest.chapter, 0)
+
     override val title: String
       get() = this.manifest.title
 
@@ -232,9 +249,6 @@ class PlayerFindawayAudioBook private constructor(
 
     override val id: String
       get() = String.format("%d-%d", this.manifest.part, this.manifest.chapter)
-
-    override val chapter: PlayerChapterLocationType
-      get() = TODO("not implemented")
   }
 
   companion object {
@@ -274,17 +288,4 @@ class PlayerFindawayAudioBook private constructor(
       return book
     }
   }
-
-  override val uniqueIdentifier: String
-    get() = this.manifest.id
-
-  override val player: PlayerType
-    get() = TODO("not implemented")
-
-  override val title: String
-    get() = this.manifest.title
-
-  override val spineElementStatusUpdates: Observable<PlayerSpineElementStatus>
-    get() = this.status_map.observable
-
 }

@@ -198,6 +198,14 @@ class PlayerActivity : Activity() {
         this.player_title.text = state.book.title
         this.player_toc_adapter = PlayerSpineElementArrayAdapter(this, state.book.spine)
         this.player_toc.adapter = this.player_toc_adapter
+        this.player_play.setOnClickListener({
+          val player = state.book.player
+          if (player.isPlaying) {
+            player.pause()
+          } else {
+            player.play()
+          }
+        })
       }
     }
   }

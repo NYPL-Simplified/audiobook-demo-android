@@ -15,4 +15,5 @@ interface PlayerAudioBookType {
   val player: PlayerType
 
   val title: String
+
 }

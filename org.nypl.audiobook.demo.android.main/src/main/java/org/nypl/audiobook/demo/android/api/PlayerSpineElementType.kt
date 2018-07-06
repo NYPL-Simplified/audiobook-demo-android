@@ -6,7 +6,7 @@ interface PlayerSpineElementType {
 
   val title: String
 
-  val chapter: PlayerChapterLocationType
+  val position: PlayerPosition
 
   val status: PlayerSpineElementStatus
 
