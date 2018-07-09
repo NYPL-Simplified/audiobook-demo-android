@@ -42,7 +42,7 @@ class PlayerFindaway(
     if (this.book.spine.size > 0) {
       (this.book.spine[0] as PlayerSpineElementType).position
     } else {
-      PlayerPosition(null, 0, 0, 0)
+      PlayerPosition(null, 0, 1, 0)
     }
 
   init {
@@ -119,6 +119,13 @@ class PlayerFindaway(
   }
 
   override fun pause() {
+    this.playhead =
+      PlayerPosition(
+        this.engine.playbackEngine.chapter.friendlyName(),
+        this.engine.playbackEngine.chapter.part(),
+        this.engine.playbackEngine.chapter.chapter(),
+        this.engine.playbackEngine.position.toInt())
+
     this.engine.playbackEngine.pause()
     this.playing = false
   }
