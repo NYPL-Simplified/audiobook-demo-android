@@ -2,13 +2,16 @@ package org.nypl.audiobook.demo.android
 
 import android.app.Activity
 import android.content.Intent
+import android.graphics.Typeface
 import android.os.Bundle
 import android.util.AttributeSet
 import android.view.View
 import android.view.ViewGroup
+import android.widget.AbsListView
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.ListView
 import android.widget.ProgressBar
 import android.widget.TextView
@@ -29,11 +32,9 @@ import org.nypl.audiobook.demo.android.api.PlayerEvent.PlayerEventPlaybackProgre
 import org.nypl.audiobook.demo.android.api.PlayerEvent.PlayerEventPlaybackStarted
 import org.nypl.audiobook.demo.android.api.PlayerEvent.PlayerEventPlaybackStopped
 import org.nypl.audiobook.demo.android.api.PlayerEvent.PlayerEventUnavailableForPlayback
-import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus.PlayerSpineElementDownloadFailed
-import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus.PlayerSpineElementDownloaded
-import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus.PlayerSpineElementDownloading
-import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus.PlayerSpineElementInitial
-import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus.PlayerSpineElementPlaying
+import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus
+import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus.*
+import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus.Playing.*
 import org.nypl.audiobook.demo.android.api.PlayerSpineElementType
 import org.nypl.audiobook.demo.android.findaway.PlayerFindawayAudioBook
 import org.nypl.audiobook.demo.android.findaway.PlayerFindawayManifest
@@ -207,6 +208,14 @@ class PlayerActivity : Activity() {
         this.player_title.text = state.book.title
         this.player_toc_adapter = PlayerSpineElementArrayAdapter(this, state.book.spine)
         this.player_toc.adapter = this.player_toc_adapter
+
+        this.player_toc.choiceMode = AbsListView.CHOICE_MODE_SINGLE
+        this.player_toc.setOnItemClickListener({ parent, view, position, id ->
+          this.log.debug("select item: {}", position)
+          this.player_toc_adapter.setSelectedItem(position)
+          this.onSpineElementStatusChanged()
+        })
+
         this.player_play.setOnClickListener({
           val player = state.book.player
           if (player.isPlaying) {
@@ -300,11 +309,13 @@ class PlayerActivity : Activity() {
     private var view_downloaded: ViewGroup
     private var view_downloaded_title: TextView
     private var view_downloaded_delete: Button
-
-    private var view_playing: ViewGroup
-    private var view_playing_title: TextView
+    private var view_downloaded_image: ImageView
 
     private lateinit var item: PlayerSpineElementType
+
+    private val color_playing: Int
+    private val color_neutral: Int
+    private val color_selected: Int
 
     init {
       context.layoutInflater.inflate(R.layout.player_toc_entry, this, true)
@@ -315,11 +326,6 @@ class PlayerActivity : Activity() {
         this.view_initial.findViewById(R.id.player_toc_entry_initial_title)
       this.view_initial_download =
         this.view_initial.findViewById(R.id.player_toc_entry_initial_download)
-
-      this.view_playing =
-        this.findViewById(R.id.player_toc_entry_playing)
-      this.view_playing_title =
-        this.view_playing.findViewById(R.id.player_toc_entry_playing_title)
 
       this.view_downloading =
         this.findViewById(R.id.player_toc_entry_downloading)
@@ -343,24 +349,28 @@ class PlayerActivity : Activity() {
         this.view_downloaded.findViewById(R.id.player_toc_entry_downloaded_title)
       this.view_downloaded_delete =
         this.view_downloaded.findViewById(R.id.player_toc_entry_downloaded_delete)
+      this.view_downloaded_image =
+        this.view_downloaded.findViewById(R.id.player_toc_entry_downloaded_image)
 
       this.view_initial.visibility = View.VISIBLE
       this.view_downloading.visibility = View.GONE
       this.view_download_failed.visibility = View.GONE
       this.view_downloaded.visibility = View.GONE
-      this.view_playing.visibility = View.GONE
 
       this.view_downloading_progress.max = 100
+
+      this.color_playing = context.resources.getColor(R.color.background_playing)
+      this.color_neutral = context.resources.getColor(R.color.background_neutral)
+      this.color_selected = context.resources.getColor(R.color.background_selected)
     }
 
-    fun viewConfigure(item: PlayerSpineElementType) {
+    fun viewConfigure(item: PlayerSpineElementType, selected: Boolean) {
       UIThread.checkIsUIThread()
 
       this.item = item
       this.view_initial_title.text = item.title
       this.view_downloading_title.text = item.title
       this.view_downloaded_title.text = item.title
-      this.view_playing_title.text = item.title
 
       val status = item.status
       when (status) {
@@ -369,41 +379,101 @@ class PlayerActivity : Activity() {
           this.view_download_failed.visibility = View.GONE
           this.view_downloaded.visibility = View.GONE
           this.view_initial.visibility = View.VISIBLE
-          this.view_playing.visibility = View.GONE
+
+          /*
+           * Work around an Android bug: List items become unclickable if focusability isn't
+           * specified.
+           */
+
+          this.view_initial.descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
+
+          if (selected) {
+            this.view_initial.setBackgroundColor(this.color_selected)
+          } else {
+            this.view_initial.setBackgroundColor(this.color_neutral)
+          }
+
           this.view_initial_download.setOnClickListener { item.downloadTask.fetch() }
         }
+
         is PlayerSpineElementDownloadFailed -> {
           this.view_downloading.visibility = View.GONE
           this.view_download_failed.visibility = View.VISIBLE
           this.view_downloaded.visibility = View.GONE
           this.view_initial.visibility = View.GONE
-          this.view_playing.visibility = View.GONE
+
+          /*
+           * Work around an Android bug: List items become unclickable if focusability isn't
+           * specified.
+           */
+
+          this.view_download_failed.descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
+
           this.view_download_failed_text.text = status.message
           this.view_download_failed_dismiss.setOnClickListener { item.downloadTask.delete() }
         }
+
         is PlayerSpineElementDownloaded -> {
           this.view_downloading.visibility = View.GONE
           this.view_download_failed.visibility = View.GONE
           this.view_downloaded.visibility = View.VISIBLE
           this.view_initial.visibility = View.GONE
-          this.view_playing.visibility = View.GONE
+
+          /*
+           * Work around an Android bug: List items become unclickable if focusability isn't
+           * specified.
+           */
+
+          this.view_downloaded.descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
+
+          this.view_downloaded.setBackgroundColor(this.color_neutral)
+          this.view_downloaded_image.setImageResource(R.drawable.book)
+          this.view_downloaded_title.setTypeface(null, Typeface.NORMAL)
+
+          if (selected) {
+            this.view_downloaded.setBackgroundColor(this.color_selected)
+          }
+
+          when (status.playing) {
+            STOPPED -> {
+
+            }
+            PAUSED -> {
+              this.view_downloaded_image.setImageResource(R.drawable.pause)
+              this.view_downloaded.setBackgroundColor(this.color_playing)
+              this.view_downloaded_title.setTypeface(null, Typeface.BOLD)
+            }
+            PLAYING -> {
+              this.view_downloaded_image.setImageResource(R.drawable.playing)
+              this.view_downloaded.setBackgroundColor(this.color_playing)
+              this.view_downloaded_title.setTypeface(null, Typeface.BOLD)
+            }
+          }
+
           this.view_downloaded_delete.setOnClickListener { item.downloadTask.delete() }
         }
+
         is PlayerSpineElementDownloading -> {
           this.view_downloading.visibility = View.VISIBLE
           this.view_download_failed.visibility = View.GONE
           this.view_downloaded.visibility = View.GONE
           this.view_initial.visibility = View.GONE
-          this.view_playing.visibility = View.GONE
+
+          /*
+           * Work around an Android bug: List items become unclickable if focusability isn't
+           * specified.
+           */
+
+          this.view_downloading.descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
+
+          if (selected) {
+            this.view_downloading.setBackgroundColor(this.color_selected)
+          } else {
+            this.view_downloading.setBackgroundColor(this.color_neutral)
+          }
+
           this.view_downloading_progress.progress = status.progress
           this.view_downloading_cancel.setOnClickListener { item.downloadTask.delete() }
-        }
-        is PlayerSpineElementPlaying -> {
-          this.view_downloading.visibility = View.GONE
-          this.view_download_failed.visibility = View.GONE
-          this.view_downloaded.visibility = View.GONE
-          this.view_initial.visibility = View.GONE
-          this.view_playing.visibility = View.VISIBLE
         }
       }
     }
@@ -425,8 +495,14 @@ class PlayerActivity : Activity() {
 
       val item = this.items.get(position)
       val view = reuse as PlayerSpineElementView? ?: PlayerSpineElementView(this.context, null)
-      view.viewConfigure(item)
+      view.viewConfigure(item, position == this.item_selected)
       return view
+    }
+
+    private var item_selected: Int = -1
+
+    fun setSelectedItem(position: Int) {
+      this.item_selected = position
     }
   }
 
@@ -549,8 +625,8 @@ class PlayerActivity : Activity() {
          */
 
         this.spine_element_subscription = book.spineElementStatusUpdates.subscribe(
-          { event -> this.onSpineElementStatusChanged(book) },
-          { event -> this.onSpineElementStatusError(book, event!!) })
+          { event -> this.onSpineElementStatusChanged() },
+          { error -> this.onSpineElementStatusError(error!!) })
 
         /*
          * Configure the view state.
@@ -568,20 +644,16 @@ class PlayerActivity : Activity() {
          * tell the UI that everything has been updated.
          */
 
-        this.onSpineElementStatusChanged(book)
+        this.onSpineElementStatusChanged()
       }
     }
   }
 
-  private fun onSpineElementStatusError(
-    book: PlayerAudioBookType,
-    event: Throwable) {
-
+  private fun onSpineElementStatusError(event: Throwable) {
     this.log.error("onSpineElementStatusError: ", event)
   }
 
-  private fun onSpineElementStatusChanged(
-    book: PlayerAudioBookType) {
+  private fun onSpineElementStatusChanged() {
 
     /*
      * Notify the table of contents that the contents of the list it is displaying has changed.

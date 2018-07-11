@@ -3,7 +3,8 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
   android:id="@+id/player_toc_entry_download_failed"
   android:layout_width="match_parent"
-  android:layout_height="match_parent">
+  android:layout_height="match_parent"
+  android:background="@color/background_failed">
 
   <TextView
     android:id="@+id/player_toc_entry_download_failed_text"
@@ -13,6 +14,7 @@
     android:layout_centerVertical="true"
     android:layout_margin="16dp"
     android:text="…"
+    android:textColor="#ffffff"
     android:textAppearance="@android:style/TextAppearance.Medium" />
 
   <Button

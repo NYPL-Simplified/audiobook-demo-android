@@ -7,25 +7,16 @@ package org.nypl.audiobook.demo.android.api
 sealed class PlayerSpineElementStatus {
 
   /**
-   * The unique ID of the spine element.
-   */
-
-  abstract val id: String
-
-  /**
    * The initial state of the spine element.
    */
 
-  data class PlayerSpineElementInitial(
-    override val id: String)
-    : PlayerSpineElementStatus()
+  object PlayerSpineElementInitial : PlayerSpineElementStatus()
 
   /**
    * The spine element is currently downloading.
    */
 
   data class PlayerSpineElementDownloading(
-    override val id: String,
     val progress: Int)
     : PlayerSpineElementStatus()
 
@@ -34,7 +25,6 @@ sealed class PlayerSpineElementStatus {
    */
 
   data class PlayerSpineElementDownloadFailed(
-    override val id: String,
     val exception: Exception?,
     val message: String)
     : PlayerSpineElementStatus()
@@ -44,14 +34,10 @@ sealed class PlayerSpineElementStatus {
    */
 
   data class PlayerSpineElementDownloaded(
-    override val id: String)
+    val playing : Playing)
     : PlayerSpineElementStatus()
 
-  /**
-   * The spine element is currently playing.
-   */
-
-  data class PlayerSpineElementPlaying(
-    override val id: String)
-    : PlayerSpineElementStatus()
+  enum class Playing {
+    STOPPED, PAUSED, PLAYING
+  }
 }
