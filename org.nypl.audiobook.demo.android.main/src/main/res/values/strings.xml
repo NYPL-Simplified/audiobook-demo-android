@@ -18,4 +18,7 @@
   <string name="player_toc_entry_cancel">Cancel</string>
   <string name="player_toc_entry_delete">Delete</string>
 
+  <string name="player_play">Play</string>
+  <string name="player_pause">Pause</string>
+
 </resources>

@@ -18,9 +18,17 @@ import okhttp3.Credentials
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
+import org.nypl.audiobook.demo.android.PlayerActivity.PlayerState.PlayerStateConfigured
+import org.nypl.audiobook.demo.android.PlayerActivity.PlayerState.PlayerStateReceivedManifest
+import org.nypl.audiobook.demo.android.PlayerActivity.PlayerState.PlayerStateReceivedResponse
+import org.nypl.audiobook.demo.android.PlayerActivity.PlayerState.PlayerStateWaitingForManifest
 import org.nypl.audiobook.demo.android.api.PlayerAudioBookType
 import org.nypl.audiobook.demo.android.api.PlayerEvent
-import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus
+import org.nypl.audiobook.demo.android.api.PlayerEvent.PlayerEventChapterCompleted
+import org.nypl.audiobook.demo.android.api.PlayerEvent.PlayerEventPlaybackProgressUpdate
+import org.nypl.audiobook.demo.android.api.PlayerEvent.PlayerEventPlaybackStarted
+import org.nypl.audiobook.demo.android.api.PlayerEvent.PlayerEventPlaybackStopped
+import org.nypl.audiobook.demo.android.api.PlayerEvent.PlayerEventUnavailableForPlayback
 import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus.PlayerSpineElementDownloadFailed
 import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus.PlayerSpineElementDownloaded
 import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus.PlayerSpineElementDownloading
@@ -113,7 +121,7 @@ class PlayerActivity : Activity() {
 
     super.onCreate(state)
 
-    this.state = PlayerState.PlayerStateWaitingForManifest(
+    this.state = PlayerStateWaitingForManifest(
       this.getString(R.string.fetch_requesting_manifest))
 
     this.fetch_view =
@@ -171,28 +179,28 @@ class PlayerActivity : Activity() {
     UIThread.checkIsUIThread()
 
     when (state) {
-      is PlayerState.PlayerStateWaitingForManifest -> {
+      is PlayerStateWaitingForManifest -> {
         this.fetch_view.visibility = View.VISIBLE
         this.player_view.visibility = View.GONE
         this.setContentView(this.fetch_view)
         this.fetch_text.text = state.message
       }
 
-      is PlayerState.PlayerStateReceivedResponse -> {
+      is PlayerStateReceivedResponse -> {
         this.fetch_view.visibility = View.VISIBLE
         this.player_view.visibility = View.GONE
         this.setContentView(this.fetch_view)
         this.fetch_text.text = state.message
       }
 
-      is PlayerState.PlayerStateReceivedManifest -> {
+      is PlayerStateReceivedManifest -> {
         this.fetch_view.visibility = View.VISIBLE
         this.player_view.visibility = View.GONE
         this.setContentView(this.fetch_view)
         this.fetch_text.text = state.message
       }
 
-      is PlayerState.PlayerStateConfigured -> {
+      is PlayerStateConfigured -> {
         this.fetch_view.visibility = View.GONE
         this.player_view.visibility = View.VISIBLE
         this.setContentView(this.player_view)
@@ -221,6 +229,51 @@ class PlayerActivity : Activity() {
 
   private fun onPlayerEvent(event: PlayerEvent) {
     this.log.debug("onPlayerEvent: {}", event)
+
+    return when (event) {
+      is PlayerEventPlaybackStarted ->
+        this.onPlayerEventPlaybackStarted(event)
+      is PlayerEventPlaybackProgressUpdate ->
+        this.onPlayerEventProgressUpdate(event)
+      is PlayerEventChapterCompleted ->
+        this.onPlayerEventChapterCompleted(event)
+      is PlayerEventUnavailableForPlayback ->
+        this.onPlayerEventUnavailableForPlayback(event)
+      is PlayerEventPlaybackStopped ->
+        this.onPlayerEventPlaybackStopped(event)
+    }
+  }
+
+  private fun onPlayerEventPlaybackStarted(event: PlayerEvent) {
+    this.log.debug("onPlayerEventPlaybackStarted")
+
+    /*
+     * Set the "play" button to "pause".
+     */
+
+    UIThread.runOnUIThread(Runnable { this.player_play.setText(R.string.player_pause) })
+  }
+
+  private fun onPlayerEventProgressUpdate(event: PlayerEvent) {
+    this.log.debug("onPlayerEventProgressUpdate")
+  }
+
+  private fun onPlayerEventChapterCompleted(event: PlayerEvent) {
+    this.log.debug("onPlayerEventChapterCompleted")
+  }
+
+  private fun onPlayerEventUnavailableForPlayback(event: PlayerEvent) {
+    this.log.debug("onPlayerEventUnavailableForPlayback")
+  }
+
+  private fun onPlayerEventPlaybackStopped(event: PlayerEvent) {
+    this.log.debug("onPlayerEventPlaybackStopped")
+
+    /*
+     * Set the "pause" button to "play".
+     */
+
+    UIThread.runOnUIThread(Runnable { this.player_play.setText(R.string.player_play) })
   }
 
   /**
@@ -411,7 +464,7 @@ class PlayerActivity : Activity() {
     UIThread.runOnUIThread(Runnable {
       val id = R.string.fetch_processing_manifest
       val text = this.getString(id)
-      val state = PlayerState.PlayerStateReceivedResponse(text)
+      val state = PlayerStateReceivedResponse(text)
       this.configurePlayerViewFromState(state)
     })
 
@@ -462,7 +515,7 @@ class PlayerActivity : Activity() {
     this.log.debug("onProcessManifestIsOther")
 
     UIThread.runOnUIThread(Runnable {
-      this.state = PlayerState.PlayerStateReceivedManifest(
+      this.state = PlayerStateReceivedManifest(
         this.getString(R.string.fetch_received_other_manifest), manifest)
       this.configurePlayerViewFromState(this.state)
     })
@@ -472,7 +525,7 @@ class PlayerActivity : Activity() {
     this.log.debug("onProcessManifestIsFindaway")
 
     UIThread.runOnUIThread(Runnable {
-      this.state = PlayerState.PlayerStateReceivedManifest(
+      this.state = PlayerStateReceivedManifest(
         this.getString(R.string.fetch_received_findaway_manifest), manifest)
       this.configurePlayerViewFromState(this.state)
     })
@@ -504,7 +557,7 @@ class PlayerActivity : Activity() {
          */
 
         UIThread.runOnUIThread(Runnable {
-          this.state = PlayerState.PlayerStateConfigured(book)
+          this.state = PlayerStateConfigured(book)
           this.configurePlayerViewFromState(this.state)
         })
 

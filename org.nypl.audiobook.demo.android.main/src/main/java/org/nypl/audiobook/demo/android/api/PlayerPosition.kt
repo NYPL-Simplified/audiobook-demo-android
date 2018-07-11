@@ -4,4 +4,4 @@ data class PlayerPosition(
   val title: String?,
   val part: Int,
   val chapter: Int,
-  val offset: Int)
+  val offsetMilliseconds: Int)

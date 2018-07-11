@@ -138,8 +138,7 @@ class PlayerFindaway(
       }
 
       PlaybackEvent.PLAYBACK_PAUSED -> {
-        this.log.debug("onPlaybackEvent: playback paused")
-        this.updatePlayheadFromEngine()
+        this.onPlaybackEventPlaybackPaused()
       }
 
       PlaybackEvent.PLAYBACK_STOPPED -> {
@@ -167,8 +166,7 @@ class PlayerFindaway(
       }
 
       PlaybackEvent.PLAYBACK_PROGRESS_UPDATE -> {
-        this.log.debug("onPlaybackEvent: playback progress update")
-        this.updatePlayheadFromEngine()
+        this.onPlaybackEventPlaybackProgressUpdate()
       }
 
       PlaybackEvent.UNKNOWN_PLAYBACK_ERROR -> {
@@ -197,13 +195,28 @@ class PlayerFindaway(
     }
   }
 
+  private fun onPlaybackEventPlaybackProgressUpdate() {
+    this.log.debug("onPlaybackEventPlaybackProgressUpdate")
+    this.updatePlayheadFromEngine()
+  }
+
+  private fun onPlaybackEventPlaybackPaused() {
+    this.log.debug("onPlaybackEventPlaybackPaused")
+    this.updatePlayheadFromEngine()
+
+    val new_playhead = this.updatePlayheadFromEngine()
+    this.event_source.onNext(PlayerEventPlaybackStopped(
+      new_playhead.spineItem,
+      new_playhead.position.offsetMilliseconds))
+  }
+
   private fun onPlaybackEventPlaybackStopped() {
     this.log.debug("onPlaybackEventPlaybackStopped")
 
     val new_playhead = this.updatePlayheadFromEngine()
     this.event_source.onNext(PlayerEventPlaybackStopped(
       new_playhead.spineItem,
-      new_playhead.position.offset))
+      new_playhead.position.offsetMilliseconds))
   }
 
   private fun onPlaybackEventPlaybackStarted() {
@@ -212,7 +225,7 @@ class PlayerFindaway(
     val new_playhead = this.updatePlayheadFromEngine()
     this.event_source.onNext(PlayerEventPlaybackStarted(
       new_playhead.spineItem,
-      new_playhead.position.offset))
+      new_playhead.position.offsetMilliseconds))
   }
 
   private fun onPlaybackEventChapterCompleted() {
@@ -227,7 +240,7 @@ class PlayerFindaway(
 
     val current_playhead = this.updatePlayheadFromEngine()
     val was_playing = this.engine.playbackEngine.isPlaying
-    if (current_playhead.position.offset != 0 && was_playing) {
+    if (current_playhead.position.offsetMilliseconds != 0 && was_playing) {
 
       /*
        * Stop playback now. If playback isn't manually stopped, the Findaway player will
@@ -239,7 +252,7 @@ class PlayerFindaway(
       this.log.debug("onPlaybackEventChapterCompleted: handling chapter playback completion")
       this.event_source.onNext(PlayerEventChapterCompleted(
         spineElement = current_playhead.spineItem,
-        offset = current_playhead.position.offset))
+        offsetMilliseconds = current_playhead.position.offsetMilliseconds))
       this.engine.playbackEngine.pause()
 
       /*
@@ -263,7 +276,7 @@ class PlayerFindaway(
     } else {
       this.log.debug(
         "onPlaybackEventChapterCompleted: ignoring chapter completion (offset {}, was playing {})",
-        current_playhead.position.offset,
+        current_playhead.position.offsetMilliseconds,
         was_playing)
     }
   }
@@ -322,7 +335,7 @@ class PlayerFindaway(
       this.book.manifest.fulfillmentId,
       playhead.part,
       playhead.chapter,
-      playhead.offset)
+      playhead.offsetMilliseconds)
   }
 
   override fun pause() {
@@ -351,7 +364,7 @@ class PlayerFindaway(
       this.book.manifest.fulfillmentId,
       location.part,
       location.chapter,
-      location.offset)
+      location.offsetMilliseconds)
     this.pause()
   }
 
