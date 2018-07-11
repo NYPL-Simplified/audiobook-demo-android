@@ -3,49 +3,57 @@ package org.nypl.audiobook.demo.android.findaway
 import io.audioengine.mobile.AudioEngine
 import io.audioengine.mobile.PlaybackEvent
 import io.audioengine.mobile.play.PlayerState
-import io.audioengine.mobile.play.PlayerState.BUFFERING
-import io.audioengine.mobile.play.PlayerState.COMPLETED
-import io.audioengine.mobile.play.PlayerState.ERROR
-import io.audioengine.mobile.play.PlayerState.IDLE
-import io.audioengine.mobile.play.PlayerState.INITIALIZED
-import io.audioengine.mobile.play.PlayerState.PAUSED
-import io.audioengine.mobile.play.PlayerState.PLAYING
-import io.audioengine.mobile.play.PlayerState.PREPARED
-import io.audioengine.mobile.play.PlayerState.PREPARING
-import io.audioengine.mobile.play.PlayerState.RELEASED
-import io.audioengine.mobile.play.PlayerState.STOPPED
+import org.nypl.audiobook.demo.android.api.PlayerEvent
+import org.nypl.audiobook.demo.android.api.PlayerEvent.*
 import org.nypl.audiobook.demo.android.api.PlayerPlaybackRate
 import org.nypl.audiobook.demo.android.api.PlayerPosition
+import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus
 import org.nypl.audiobook.demo.android.api.PlayerSpineElementType
 import org.nypl.audiobook.demo.android.api.PlayerType
 import org.slf4j.LoggerFactory
+import rx.Observable
+import rx.subjects.PublishSubject
 
 class PlayerFindaway(
   private val book: PlayerFindawayAudioBook,
   private val engine: AudioEngine)
   : PlayerType {
 
+  override val isPlaying: Boolean
+    get() = synchronized(this.state.lock, { this.state.isPlaying })
+
+  override val events: Observable<PlayerEvent>
+    get() = this.event_source
+
   private val log = LoggerFactory.getLogger(PlayerFindaway::class.java)
+  private val event_source: PublishSubject<PlayerEvent> = PublishSubject.create()
+  private val state: State
 
-  private var rate: PlayerPlaybackRate = PlayerPlaybackRate.NORMAL_TIME
+  /**
+   * Internal player state. Access to the fields of this structure MUST be protected via
+   * synchronization on the lock field.
+   */
 
-  override var playbackRate: PlayerPlaybackRate
-    get() = this.rate
-    set(value) {
-      this.rate = value
-      this.engine.playbackEngine.speed = this.rate.speed.toFloat()
-    }
+  private data class State(
+    val lock: Any,
+    var rate: PlayerPlaybackRate = PlayerPlaybackRate.NORMAL_TIME,
+    var isPlaying: Boolean,
+    var spineItem: PlayerSpineElementType,
+    var playhead: PlayerPosition)
 
-  private var playing = false
-
-  private var playhead: PlayerPosition =
-    if (this.book.spine.size > 0) {
-      (this.book.spine[0] as PlayerSpineElementType).position
-    } else {
-      PlayerPosition(null, 0, 1, 0)
-    }
+  /**
+   * The "constructor" for the class.
+   */
 
   init {
+    this.state =
+      State(
+        lock = Any(),
+        rate = PlayerPlaybackRate.NORMAL_TIME,
+        isPlaying = false,
+        spineItem = this.findSpineItemInitial(this.book),
+        playhead = this.findSpineItemInitial(this.book).position)
+
     this.engine.playbackEngine.events().subscribe(
       { event -> this.onPlaybackEvent(event) },
       { error -> this.onPlaybackError(error) })
@@ -55,79 +63,273 @@ class PlayerFindaway(
       { error -> this.onPlaybackError(error) })
   }
 
+  override var playbackRate: PlayerPlaybackRate
+    get() =
+      synchronized(this.state.lock, { this.state.rate })
+    set(value) {
+      synchronized(this.state.lock) {
+        this.state.rate = value
+      }
+      this.engine.playbackEngine.speed = value.speed.toFloat()
+    }
+
+  /**
+   * Find the book's initial spine item.
+   */
+
+  private fun findSpineItemInitial(book: PlayerFindawayAudioBook): PlayerSpineElementType {
+    if (book.spine.size > 0) {
+      return book.spine[0]
+    } else {
+      throw IllegalStateException("Book has no spine items")
+    }
+  }
+
+  /**
+   * Find the next spine item, if one is available. A spine item is available if it both exists
+   * and is downloaded.
+   */
+
+  private fun findSpineItemNextIfAvailable(item: PlayerSpineElementType): PlayerSpineElementType? {
+    val next = item.next
+    if (next != null) {
+      return when (next.status) {
+        is PlayerSpineElementStatus.PlayerSpineElementInitial -> null
+        is PlayerSpineElementStatus.PlayerSpineElementDownloading -> null
+        is PlayerSpineElementStatus.PlayerSpineElementDownloadFailed -> null
+        is PlayerSpineElementStatus.PlayerSpineElementDownloaded -> next
+        is PlayerSpineElementStatus.PlayerSpineElementPlaying -> next
+      }
+    }
+    return null
+  }
+
   private fun onPlaybackState(state: PlayerState?) {
-    this.log.debug("onPlaybackState: {}: {}", this.playhead, state)
+    this.log.debug("onPlaybackState: {}: {}",
+      synchronized(this.state.lock, { this.state.playhead }), state)
+    this.updatePlayheadFromEngine()
+  }
 
-    when (state) {
-      IDLE -> {
+  private fun onPlaybackError(error: Throwable?) {
+    if (error == null) {
+      return;
+    }
 
+    this.log.error("onPlaybackError: ", error)
+  }
+
+  private fun onPlaybackEvent(event: PlaybackEvent?) {
+    if (event == null) {
+      return;
+    }
+
+    when (event.code) {
+      PlaybackEvent.PLAYBACK_STARTED -> {
+        this.onPlaybackEventPlaybackStarted()
       }
-      INITIALIZED -> {
 
+      PlaybackEvent.CHAPTER_PLAYBACK_COMPLETED -> {
+        this.onPlaybackEventChapterCompleted()
       }
-      PREPARING -> {
 
+      PlaybackEvent.PLAYBACK_ENDED -> {
+        this.log.debug("onPlaybackEvent: playback ended")
+        this.updatePlayheadFromEngine()
       }
-      PREPARED -> {
 
+      PlaybackEvent.PLAYBACK_PAUSED -> {
+        this.log.debug("onPlaybackEvent: playback paused")
+        this.updatePlayheadFromEngine()
       }
-      BUFFERING -> {
 
+      PlaybackEvent.PLAYBACK_STOPPED -> {
+        this.onPlaybackEventPlaybackStopped()
       }
-      PLAYING -> {
 
+      PlaybackEvent.PLAYBACK_PREPARING -> {
+        this.log.debug("onPlaybackEvent: playback preparing")
+        this.updatePlayheadFromEngine()
       }
-      PAUSED -> {
 
+      PlaybackEvent.PLAYBACK_BUFFERING_STARTED -> {
+        this.log.debug("onPlaybackEvent: playback buffering started")
+        this.updatePlayheadFromEngine()
       }
-      STOPPED -> {
 
+      PlaybackEvent.PLAYBACK_BUFFERING_ENDED -> {
+        this.log.debug("onPlaybackEvent: playback buffering ended")
+        this.updatePlayheadFromEngine()
       }
-      RELEASED -> {
 
+      PlaybackEvent.SEEK_COMPLETE -> {
+        this.log.debug("onPlaybackEvent: seek complete")
+        this.updatePlayheadFromEngine()
       }
-      ERROR -> {
 
+      PlaybackEvent.PLAYBACK_PROGRESS_UPDATE -> {
+        this.log.debug("onPlaybackEvent: playback progress update")
+        this.updatePlayheadFromEngine()
       }
-      COMPLETED -> {
 
+      PlaybackEvent.UNKNOWN_PLAYBACK_ERROR -> {
+        this.log.debug("onPlaybackEvent: unknown playback error")
       }
-      null -> {
+
+      PlaybackEvent.UNABLE_TO_AQUIRE_AUDIO_FOCUS -> {
+        this.log.debug("onPlaybackEvent: unable to acquire audio focus")
+      }
+
+      PlaybackEvent.ERROR_PREPARING_PLAYER -> {
+        this.log.debug("onPlaybackEvent: error preparing player")
+      }
+
+      PlaybackEvent.NO_CURRENT_CONTENT -> {
+        this.log.debug("onPlaybackEvent: no current content")
+      }
+
+      PlaybackEvent.NO_CURRENT_CHAPTER -> {
+        this.log.debug("onPlaybackEvent: no current chapter")
+      }
+
+      else -> {
+        this.log.debug("onPlaybackEvent: unrecognized playback event code: {}", event.code)
       }
     }
   }
 
-  private fun onPlaybackError(error: Throwable?) {
+  private fun onPlaybackEventPlaybackStopped() {
+    this.log.debug("onPlaybackEventPlaybackStopped")
 
+    val new_playhead = this.updatePlayheadFromEngine()
+    this.event_source.onNext(PlayerEventPlaybackStopped(
+      new_playhead.spineItem,
+      new_playhead.position.offset))
   }
 
-  private fun onPlaybackEvent(event: PlaybackEvent?) {
+  private fun onPlaybackEventPlaybackStarted() {
+    this.log.debug("onPlaybackEventPlaybackStarted")
 
+    val new_playhead = this.updatePlayheadFromEngine()
+    this.event_source.onNext(PlayerEventPlaybackStarted(
+      new_playhead.spineItem,
+      new_playhead.position.offset))
   }
 
-  override val isPlaying: Boolean
-    get() = this.playing
+  private fun onPlaybackEventChapterCompleted() {
+
+    /*
+     * The CHAPTER_PLAYBACK_COMPLETED event will, for some reason, be published at both the end
+     * of the old chapter and the start of the new one. We only want to publish an event once
+     * for the chapter that has just ended, so the condition we use is that the current engine
+     * position must be non-zero (in other words, not at the very start of a chapter), and the
+     * engine must be playing. An event received in other states is ignored.
+     */
+
+    val current_playhead = this.updatePlayheadFromEngine()
+    val was_playing = this.engine.playbackEngine.isPlaying
+    if (current_playhead.position.offset != 0 && was_playing) {
+
+      /*
+       * Stop playback now. If playback isn't manually stopped, the Findaway player will
+       * automatically move to the next chapter. Unfortunately, if the next chapter hasn't been
+       * downloaded, it will instead be streamed from the remote server. On connections with
+       * limited bandwidth quotas, this is undesirable behaviour.
+       */
+
+      this.log.debug("onPlaybackEventChapterCompleted: handling chapter playback completion")
+      this.event_source.onNext(PlayerEventChapterCompleted(
+        spineElement = current_playhead.spineItem,
+        offset = current_playhead.position.offset))
+      this.engine.playbackEngine.pause()
+
+      /*
+       * If the next spine item is available, start playing it.
+       */
+
+      val next_playhead = this.findSpineItemNextIfAvailable(current_playhead.spineItem)
+      if (next_playhead != null) {
+        this.log.debug("onPlaybackEventChapterCompleted: next chapter is available")
+        this.engine.playbackEngine.play(
+          this.book.manifest.licenseId,
+          this.book.manifest.fulfillmentId,
+          next_playhead.position.part,
+          next_playhead.position.chapter,
+          0)
+      } else {
+        this.log.debug("onPlaybackEventChapterCompleted: next chapter not available")
+      }
+
+      this.log.debug("onPlaybackEventChapterCompleted: handled chapter playback completed")
+    } else {
+      this.log.debug(
+        "onPlaybackEventChapterCompleted: ignoring chapter completion (offset {}, was playing {})",
+        current_playhead.position.offset,
+        was_playing)
+    }
+  }
+
+  private data class SpineItemAndPosition(
+    val spineItem: PlayerSpineElementType,
+    val position: PlayerPosition)
+
+  /**
+   * Pull the current playhead position from the playback engine.
+   */
+
+  private fun updatePlayheadFromEngine(): SpineItemAndPosition {
+    val chapter = this.engine.playbackEngine.chapter
+    if (chapter == null) {
+      return synchronized(this.state.lock, {
+        SpineItemAndPosition(
+          spineItem = this.state.spineItem,
+          position = this.state.playhead)
+      })
+    }
+
+    val new_playhead = PlayerPosition(
+      chapter.friendlyName(),
+      chapter.part(),
+      chapter.chapter(),
+      this.engine.playbackEngine.position.toInt())
+
+    val element =
+      this.book.spineElementForPartAndChapter(
+        part = chapter.part(),
+        chapter = chapter.chapter())
+
+    if (element == null) {
+      throw IllegalStateException(
+        "Could not find spine element for part ${chapter.chapter()} and part ${chapter.part()}")
+    }
+
+    val playing = this.engine.playbackEngine.isPlaying
+    synchronized(this.state.lock, {
+      this.state.playhead = new_playhead
+      this.state.isPlaying = playing
+    })
+
+    this.log.debug("now at {} (playing: {})", new_playhead, playing)
+    return SpineItemAndPosition(spineItem = element, position = new_playhead)
+  }
 
   override fun play() {
+    this.log.debug("playing")
+
+    val playhead = synchronized(this.state.lock, { this.state.playhead })
+
     this.engine.playbackEngine.play(
       this.book.manifest.licenseId,
       this.book.manifest.fulfillmentId,
-      this.playhead.part,
-      this.playhead.chapter,
-      this.playhead.offset)
-    this.playing = true
+      playhead.part,
+      playhead.chapter,
+      playhead.offset)
   }
 
   override fun pause() {
-    this.playhead =
-      PlayerPosition(
-        this.engine.playbackEngine.chapter.friendlyName(),
-        this.engine.playbackEngine.chapter.part(),
-        this.engine.playbackEngine.chapter.chapter(),
-        this.engine.playbackEngine.position.toInt())
+    this.log.debug("pausing")
 
+    this.updatePlayheadFromEngine()
     this.engine.playbackEngine.pause()
-    this.playing = false
   }
 
   override fun skipForward() {
@@ -144,7 +346,13 @@ class PlayerFindaway(
   }
 
   override fun movePlayheadToLocation(location: PlayerPosition) {
-    TODO("not implemented")
+    this.engine.playbackEngine.play(
+      this.book.manifest.licenseId,
+      this.book.manifest.fulfillmentId,
+      location.part,
+      location.chapter,
+      location.offset)
+    this.pause()
   }
 
   override val key: String

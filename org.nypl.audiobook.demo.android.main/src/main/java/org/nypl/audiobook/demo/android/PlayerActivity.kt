@@ -19,6 +19,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 import org.nypl.audiobook.demo.android.api.PlayerAudioBookType
+import org.nypl.audiobook.demo.android.api.PlayerEvent
 import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus
 import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus.PlayerSpineElementDownloadFailed
 import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus.PlayerSpineElementDownloaded
@@ -206,8 +207,20 @@ class PlayerActivity : Activity() {
             player.play()
           }
         })
+
+        state.book.player.events.subscribe(
+          { event -> this.onPlayerEvent(event!!) },
+          { error -> this.onPlayerError(error!!) })
       }
     }
+  }
+
+  private fun onPlayerError(error: Throwable) {
+    this.log.error("onPlayerError: ", error)
+  }
+
+  private fun onPlayerEvent(event: PlayerEvent) {
+    this.log.debug("onPlayerEvent: {}", event)
   }
 
   /**

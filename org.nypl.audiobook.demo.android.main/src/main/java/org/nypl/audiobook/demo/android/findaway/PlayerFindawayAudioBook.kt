@@ -22,8 +22,16 @@ import org.slf4j.LoggerFactory
 import rx.Observable
 import rx.Subscription
 import rx.subjects.PublishSubject
+import java.util.SortedMap
+import java.util.TreeMap
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.collections.ArrayList
+import kotlin.collections.HashMap
+import kotlin.collections.List
+import kotlin.collections.Map
+import kotlin.collections.first
+import kotlin.collections.forEach
 
 /**
  * A Findaway based implementation of the {@link PlayerAudioBookType} interface.
@@ -34,7 +42,24 @@ class PlayerFindawayAudioBook private constructor(
   private val engine: AudioEngine,
   override val spine: List<PlayerFindawaySpineElement>,
   override val spineByID: Map<String, PlayerFindawaySpineElement>,
-  private val status_map: PlayerFindawaySpineElementStatusMap) : PlayerAudioBookType {
+  private val status_map: PlayerFindawaySpineElementStatusMap,
+  override val spineByPartAndChapter: SortedMap<Int, SortedMap<Int, PlayerSpineElementType>>)
+  : PlayerAudioBookType {
+
+  override fun spineElementInitial(): PlayerSpineElementType? {
+    if (!this.spine.isEmpty()) {
+      return this.spine.first()
+    }
+    return null
+  }
+
+  override fun spineElementForPartAndChapter(part: Int, chapter: Int): PlayerSpineElementType? {
+    if (this.spineByPartAndChapter.containsKey(part)) {
+      val chapters = this.spineByPartAndChapter[part]!!
+      return chapters[chapter]
+    }
+    return null
+  }
 
   private val findaway_player: PlayerFindaway = PlayerFindaway(this, this.engine)
 
@@ -78,8 +103,8 @@ class PlayerFindawayAudioBook private constructor(
     private val download_subscription_status: Subscription =
       this.downloader.getStatus(
         this.manifest.fulfillmentId,
-        this.spine_element.manifest.part,
-        this.spine_element.manifest.chapter)
+        this.spine_element.item_manifest.part,
+        this.spine_element.item_manifest.chapter)
         .subscribe(
           { status -> this.onDownloadStatus(status) },
           { error -> this.onDownloadError(error) })
@@ -87,8 +112,8 @@ class PlayerFindawayAudioBook private constructor(
     private val download_subscription_progress: Subscription =
       this.downloader.getProgress(
         this.manifest.fulfillmentId,
-        this.spine_element.manifest.part,
-        this.spine_element.manifest.chapter)
+        this.spine_element.item_manifest.part,
+        this.spine_element.item_manifest.chapter)
         .subscribe(
           { status -> this.onDownloadProgress(status) },
           { error -> this.onDownloadError(error) })
@@ -100,8 +125,8 @@ class PlayerFindawayAudioBook private constructor(
 
         val request =
           DownloadRequest.builder()
-            .chapter(this.spine_element.manifest.chapter)
-            .part(this.spine_element.manifest.part)
+            .chapter(this.spine_element.item_manifest.chapter)
+            .part(this.spine_element.item_manifest.part)
             .licenseId(this.manifest.licenseId)
             .type(DownloadType.SINGLE)
             .contentId(this.manifest.fulfillmentId)
@@ -139,15 +164,19 @@ class PlayerFindawayAudioBook private constructor(
 
       when (status) {
         DownloadStatus.NOT_DOWNLOADED -> {
+
         }
         DownloadStatus.DOWNLOADED -> {
           this.onDownloadFinished()
         }
         DownloadStatus.DOWNLOADING -> {
+
         }
         DownloadStatus.QUEUED -> {
+
         }
         DownloadStatus.PAUSED -> {
+
         }
         null -> {
 
@@ -181,8 +210,8 @@ class PlayerFindawayAudioBook private constructor(
 
       val request =
         DownloadRequest.builder()
-          .chapter(this.spine_element.manifest.chapter)
-          .part(this.spine_element.manifest.part)
+          .chapter(this.spine_element.item_manifest.chapter)
+          .part(this.spine_element.item_manifest.part)
           .licenseId(this.manifest.licenseId)
           .type(DownloadType.SINGLE)
           .contentId(this.manifest.fulfillmentId)
@@ -230,25 +259,30 @@ class PlayerFindawayAudioBook private constructor(
    */
 
   private class PlayerFindawaySpineElement(
-    private val book: PlayerFindawayAudioBook,
     private val engine: AudioEngine,
     private val status_map: PlayerFindawaySpineElementStatusMap,
-    val manifest: PlayerFindawayManifestSpineItem) : PlayerSpineElementType {
+    val book_manifest: PlayerFindawayManifest,
+    val item_manifest: PlayerFindawayManifestSpineItem,
+    override val index: Int,
+    internal var next_element: PlayerSpineElementType?) : PlayerSpineElementType {
+
+    override val next: PlayerSpineElementType?
+      get() = this.next_element
 
     override val position: PlayerPosition
-      get() = PlayerPosition(this.manifest.title, this.manifest.part, this.manifest.chapter, 0)
+      get() = PlayerPosition(this.item_manifest.title, this.item_manifest.part, this.item_manifest.chapter, 0)
 
     override val title: String
-      get() = this.manifest.title
+      get() = this.item_manifest.title
 
     override val downloadTask: PlayerDownloadTaskType =
-      PlayerFindawayDownloadTask(this.engine, this.status_map, this.book.manifest, this)
+      PlayerFindawayDownloadTask(this.engine, this.status_map, this.book_manifest, this)
 
     override val status: PlayerSpineElementStatus
       get() = this.status_map.status(this.id)
 
     override val id: String
-      get() = String.format("%d-%d", this.manifest.part, this.manifest.chapter)
+      get() = String.format("%d-%d", this.item_manifest.part, this.item_manifest.chapter)
   }
 
   companion object {
@@ -277,15 +311,62 @@ class PlayerFindawayAudioBook private constructor(
       val engine = AudioEngine.getInstance()
       val elements = ArrayList<PlayerFindawaySpineElement>()
       val elements_by_id = HashMap<String, PlayerFindawaySpineElement>()
-      val book = PlayerFindawayAudioBook(manifest, engine, elements, elements_by_id, status_map)
+      val elements_by_part = TreeMap<Int, TreeMap<Int, PlayerSpineElementType>>()
 
+      var index = 0
+      var spine_item_previous: PlayerFindawaySpineElement? = null
       manifest.spineItems.forEach { spine_item ->
-        val element = PlayerFindawaySpineElement(book, engine, status_map, spine_item)
+        val element =
+          PlayerFindawaySpineElement(
+            engine = engine,
+            status_map = status_map,
+            item_manifest = spine_item,
+            book_manifest = manifest,
+            index = index,
+            next_element = null)
+
         elements.add(element)
         elements_by_id.put(element.id, element)
+        this.addElementByPartAndChapter(elements_by_part, element)
+        ++index
+
+        /*
+         * Make the "next" field of the previous element point to the current element.
+         */
+
+        val previous = spine_item_previous
+        if (previous != null) {
+          previous.next_element = element
+        }
+        spine_item_previous = element
       }
 
-      return book
+      return PlayerFindawayAudioBook(
+        manifest = manifest,
+        engine = engine,
+        spine = elements,
+        spineByID = elements_by_id,
+        spineByPartAndChapter = elements_by_part as SortedMap<Int, SortedMap<Int, PlayerSpineElementType>>,
+        status_map = status_map)
+    }
+
+    /**
+     * Organize an element by part number and chapter number.
+     */
+
+    private fun addElementByPartAndChapter(
+      elements_by_part: TreeMap<Int, TreeMap<Int, PlayerSpineElementType>>,
+      element: PlayerFindawaySpineElement) {
+
+      val part_chapters: TreeMap<Int, PlayerSpineElementType> =
+        if (elements_by_part.containsKey(element.item_manifest.part)) {
+          elements_by_part[element.item_manifest.part]!!
+        } else {
+          TreeMap()
+        }
+
+      part_chapters.put(element.item_manifest.chapter, element)
+      elements_by_part.put(element.item_manifest.part, part_chapters)
     }
   }
 }

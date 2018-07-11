@@ -1,5 +1,7 @@
 package org.nypl.audiobook.demo.android.api
 
+import rx.Observable
+
 interface PlayerType {
 
   val key: String
@@ -7,6 +9,12 @@ interface PlayerType {
   val isPlaying: Boolean
 
   var playbackRate: PlayerPlaybackRate
+
+  /**
+   * An observable that publishes player status updates.
+   */
+
+  val events: Observable<PlayerEvent>
 
   /**
    * Play at current playhead location
