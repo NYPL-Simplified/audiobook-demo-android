@@ -5,6 +5,7 @@ import io.audioengine.mobile.PlaybackEvent
 import io.audioengine.mobile.play.PlayerState
 import org.nypl.audiobook.demo.android.api.PlayerEvent
 import org.nypl.audiobook.demo.android.api.PlayerEvent.PlayerEventChapterCompleted
+import org.nypl.audiobook.demo.android.api.PlayerEvent.PlayerEventPlaybackProgressUpdate
 import org.nypl.audiobook.demo.android.api.PlayerEvent.PlayerEventPlaybackStarted
 import org.nypl.audiobook.demo.android.api.PlayerEvent.PlayerEventPlaybackStopped
 import org.nypl.audiobook.demo.android.api.PlayerPlaybackRate
@@ -112,6 +113,30 @@ class PlayerFindaway(
     return null
   }
 
+  private fun enginePlaySpineElement(element: PlayerFindawaySpineElement) {
+    this.enginePlay(element.position)
+  }
+
+  private fun enginePlay(playhead: PlayerPosition) {
+    this.log.debug("enginePlay: {}", playhead)
+    this.engine.playbackEngine.play(
+      this.book.manifest.licenseId,
+      this.book.manifest.fulfillmentId,
+      playhead.part,
+      playhead.chapter,
+      playhead.offsetMilliseconds)
+  }
+
+  private fun engineSeek(position: Long) {
+    this.log.debug("engineSeek: {}", position)
+    this.engine.playbackEngine.seekTo(position)
+  }
+
+  private fun enginePause() {
+    this.log.debug("enginePause")
+    this.engine.playbackEngine.pause()
+  }
+
   private fun onPlaybackState(state: PlayerState?) {
     this.log.debug("onPlaybackState: {}: {}",
       synchronized(this.state.lock, { this.state.playhead }), state)
@@ -201,6 +226,13 @@ class PlayerFindaway(
   private fun onPlaybackEventPlaybackProgressUpdate() {
     this.log.debug("onPlaybackEventPlaybackProgressUpdate")
     this.updatePlayheadFromEngine()
+
+    val new_playhead = this.updatePlayheadFromEngine()
+    this.publishPlayingState(new_playhead.spineItem, PLAYING)
+
+    this.event_source.onNext(PlayerEventPlaybackProgressUpdate(
+      new_playhead.spineItem,
+      new_playhead.position.offsetMilliseconds))
   }
 
   private fun onPlaybackEventPlaybackPaused() {
@@ -272,15 +304,19 @@ class PlayerFindaway(
        * Stop playback now. If playback isn't manually stopped, the Findaway player will
        * automatically move to the next chapter. Unfortunately, if the next chapter hasn't been
        * downloaded, it will instead be streamed from the remote server. On connections with
-       * limited bandwidth quotas, this is undesirable behaviour.
+       * limited bandwidth quotas, this is undesirable behaviour. In order to try to force the
+       * playback engine to stop skipping to new chapters, we seek to the start of the current
+       * chapter and pause playback.
        */
 
       this.log.debug("onPlaybackEventChapterCompleted: handling chapter playback completion")
       this.event_source.onNext(PlayerEventChapterCompleted(
         spineElement = current_playhead.spineItem,
         offsetMilliseconds = current_playhead.position.offsetMilliseconds))
+
+      this.engineSeek(0L)
       this.publishPlayingState(current_playhead.spineItem, STOPPED)
-      this.engine.playbackEngine.pause()
+      this.enginePause()
 
       /*
        * If the next spine item is available, start playing it.
@@ -290,12 +326,7 @@ class PlayerFindaway(
       if (next_playhead != null) {
         this.log.debug("onPlaybackEventChapterCompleted: next chapter is available")
         this.publishPlayingState(next_playhead as PlayerFindawaySpineElement, PLAYING)
-        this.engine.playbackEngine.play(
-          this.book.manifest.licenseId,
-          this.book.manifest.fulfillmentId,
-          next_playhead.position.part,
-          next_playhead.position.chapter,
-          0)
+        this.enginePlaySpineElement(next_playhead)
       } else {
         this.log.debug("onPlaybackEventChapterCompleted: next chapter not available")
       }
@@ -358,21 +389,14 @@ class PlayerFindaway(
   override fun play() {
     this.log.debug("playing")
 
-    val playhead = synchronized(this.state.lock, { this.state.playhead })
-
-    this.engine.playbackEngine.play(
-      this.book.manifest.licenseId,
-      this.book.manifest.fulfillmentId,
-      playhead.part,
-      playhead.chapter,
-      playhead.offsetMilliseconds)
+    this.enginePlay(synchronized(this.state.lock, { this.state.playhead }))
   }
 
   override fun pause() {
     this.log.debug("pausing")
 
     this.updatePlayheadFromEngine()
-    this.engine.playbackEngine.pause()
+    this.enginePause()
   }
 
   override fun skipForward() {
@@ -389,12 +413,7 @@ class PlayerFindaway(
   }
 
   override fun movePlayheadToLocation(location: PlayerPosition) {
-    this.engine.playbackEngine.play(
-      this.book.manifest.licenseId,
-      this.book.manifest.fulfillmentId,
-      location.part,
-      location.chapter,
-      location.offsetMilliseconds)
+    this.enginePlay(location)
     this.pause()
   }
 
