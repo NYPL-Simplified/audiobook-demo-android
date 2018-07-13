@@ -6,12 +6,10 @@ import io.audioengine.mobile.persistence.DeleteRequest
 import io.audioengine.mobile.persistence.DownloadRequest
 import io.audioengine.mobile.persistence.DownloadType
 import org.nypl.audiobook.demo.android.api.PlayerDownloadTaskType
-import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus
-import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus.PlayerSpineElementDownloadFailed
-import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus.PlayerSpineElementDownloaded
-import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus.PlayerSpineElementDownloading
-import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus.PlayerSpineElementInitial
-import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus.Playing.*
+import org.nypl.audiobook.demo.android.api.PlayerSpineElementDownloadStatus.PlayerSpineElementDownloadFailed
+import org.nypl.audiobook.demo.android.api.PlayerSpineElementDownloadStatus.PlayerSpineElementDownloaded
+import org.nypl.audiobook.demo.android.api.PlayerSpineElementDownloadStatus.PlayerSpineElementDownloading
+import org.nypl.audiobook.demo.android.api.PlayerSpineElementDownloadStatus.PlayerSpineElementNotDownloaded
 import org.slf4j.LoggerFactory
 import rx.Subscription
 import java.util.concurrent.atomic.AtomicBoolean
@@ -54,7 +52,7 @@ class PlayerFindawayDownloadTask(
   override fun fetch() {
     if (this.downloading.compareAndSet(false, true)) {
       this.log.debug("fetching")
-      this.spineElement.setStatus(PlayerSpineElementDownloading(0))
+      this.spineElement.setDownloadStatus(PlayerSpineElementDownloading(0))
 
       val request =
         DownloadRequest.builder()
@@ -75,7 +73,7 @@ class PlayerFindawayDownloadTask(
 
     if (this.downloading.get()) {
       val prog = progress ?: 0
-      this.spineElement.setStatus(PlayerSpineElementDownloading(prog))
+      this.spineElement.setDownloadStatus(PlayerSpineElementDownloading(prog))
       this.download_progress = prog
     }
   }
@@ -85,7 +83,7 @@ class PlayerFindawayDownloadTask(
 
     if (this.downloading.compareAndSet(true, false)) {
       val exception = Exception(error)
-      this.spineElement.setStatus(PlayerSpineElementDownloadFailed(
+      this.spineElement.setDownloadStatus(PlayerSpineElementDownloadFailed(
         exception,
         "Download failed!"))
     }
@@ -119,7 +117,7 @@ class PlayerFindawayDownloadTask(
   private fun onDownloadFinished() {
     this.log.debug("onDownloadFinished: {}", this.spineElement.id)
     this.downloading.set(false)
-    this.spineElement.setStatus(PlayerSpineElementDownloaded(playing = STOPPED))
+    this.spineElement.setDownloadStatus(PlayerSpineElementDownloaded)
   }
 
   override fun delete() {
@@ -156,7 +154,7 @@ class PlayerFindawayDownloadTask(
         .build()
 
     this.downloader.delete(delete_request)
-    this.spineElement.setStatus(PlayerSpineElementInitial)
+    this.spineElement.setDownloadStatus(PlayerSpineElementNotDownloaded)
   }
 
   override val progress: Double

@@ -1,19 +1,25 @@
 package org.nypl.audiobook.demo.android
 
 import android.app.Activity
+import android.app.AlertDialog
+import android.content.DialogInterface
 import android.content.Intent
 import android.graphics.Typeface
 import android.os.Bundle
+import android.os.SystemClock
+import android.telecom.VideoProfile.isPaused
 import android.util.AttributeSet
 import android.view.View
 import android.view.ViewGroup
 import android.widget.AbsListView
+import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.ListView
 import android.widget.ProgressBar
+import android.widget.SeekBar
 import android.widget.TextView
 import okhttp3.Call
 import okhttp3.Callback
@@ -21,6 +27,10 @@ import okhttp3.Credentials
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
+import org.joda.time.Duration
+import org.joda.time.format.PeriodFormatter
+import org.joda.time.format.PeriodFormatterBuilder
+import org.nypl.audiobook.demo.android.PlayerActivity.PlayerSpineElementPlayingStatus.*
 import org.nypl.audiobook.demo.android.PlayerActivity.PlayerState.PlayerStateConfigured
 import org.nypl.audiobook.demo.android.PlayerActivity.PlayerState.PlayerStateReceivedManifest
 import org.nypl.audiobook.demo.android.PlayerActivity.PlayerState.PlayerStateReceivedResponse
@@ -28,13 +38,15 @@ import org.nypl.audiobook.demo.android.PlayerActivity.PlayerState.PlayerStateWai
 import org.nypl.audiobook.demo.android.api.PlayerAudioBookType
 import org.nypl.audiobook.demo.android.api.PlayerEvent
 import org.nypl.audiobook.demo.android.api.PlayerEvent.PlayerEventChapterCompleted
+import org.nypl.audiobook.demo.android.api.PlayerEvent.PlayerEventPlaybackBuffering
+import org.nypl.audiobook.demo.android.api.PlayerEvent.PlayerEventPlaybackPaused
 import org.nypl.audiobook.demo.android.api.PlayerEvent.PlayerEventPlaybackProgressUpdate
 import org.nypl.audiobook.demo.android.api.PlayerEvent.PlayerEventPlaybackStarted
 import org.nypl.audiobook.demo.android.api.PlayerEvent.PlayerEventPlaybackStopped
-import org.nypl.audiobook.demo.android.api.PlayerEvent.PlayerEventUnavailableForPlayback
-import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus
-import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus.*
-import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus.Playing.*
+import org.nypl.audiobook.demo.android.api.PlayerSpineElementDownloadStatus.PlayerSpineElementDownloadFailed
+import org.nypl.audiobook.demo.android.api.PlayerSpineElementDownloadStatus.PlayerSpineElementDownloaded
+import org.nypl.audiobook.demo.android.api.PlayerSpineElementDownloadStatus.PlayerSpineElementDownloading
+import org.nypl.audiobook.demo.android.api.PlayerSpineElementDownloadStatus.PlayerSpineElementNotDownloaded
 import org.nypl.audiobook.demo.android.api.PlayerSpineElementType
 import org.nypl.audiobook.demo.android.findaway.PlayerFindawayAudioBook
 import org.nypl.audiobook.demo.android.findaway.PlayerFindawayManifest
@@ -42,6 +54,7 @@ import org.nypl.audiobook.demo.android.main.R
 import org.slf4j.LoggerFactory
 import rx.Subscription
 import java.io.IOException
+import java.util.concurrent.TimeUnit
 
 /**
  * An activity that fetches a book.
@@ -102,6 +115,17 @@ class PlayerActivity : Activity() {
       val book: PlayerAudioBookType) : PlayerState()
   }
 
+  private val periodFormatter: PeriodFormatter =
+    PeriodFormatterBuilder()
+      .printZeroAlways()
+      .minimumPrintedDigits(2)
+      .appendHours()
+      .appendLiteral(":")
+      .appendMinutes()
+      .appendLiteral(":")
+      .appendSeconds()
+      .toFormatter()
+
   private lateinit var fetch_view: View
   private lateinit var fetch_progress: ProgressBar
   private lateinit var fetch_text: TextView
@@ -113,9 +137,13 @@ class PlayerActivity : Activity() {
   private lateinit var player_toc: ListView
   private lateinit var player_toc_adapter: PlayerSpineElementArrayAdapter
   private lateinit var player_title: TextView
+  private lateinit var player_time: TextView
+  private lateinit var player_time_maximum: TextView
+  private lateinit var player_bar: ProgressBar
 
   private lateinit var state: PlayerState
   private var spine_element_subscription: Subscription? = null
+  private var player_event_subscription: Subscription? = null
 
   override fun onCreate(state: Bundle?) {
     this.log.debug("onCreate")
@@ -145,6 +173,12 @@ class PlayerActivity : Activity() {
       this.player_view.findViewById(R.id.player_toc)
     this.player_title =
       this.player_view.findViewById(R.id.player_title)
+    this.player_time =
+      this.player_view.findViewById(R.id.player_time)
+    this.player_time_maximum =
+      this.player_view.findViewById(R.id.player_time_maximum)
+    this.player_bar =
+      this.player_view.findViewById(R.id.player_seek_bar)
 
     this.setContentView(this.fetch_view)
 
@@ -209,11 +243,45 @@ class PlayerActivity : Activity() {
         this.player_toc_adapter = PlayerSpineElementArrayAdapter(this, state.book.spine)
         this.player_toc.adapter = this.player_toc_adapter
 
+        /*
+         * Configure a double-click listener in order to switch to spine items.
+         */
+
         this.player_toc.choiceMode = AbsListView.CHOICE_MODE_SINGLE
-        this.player_toc.setOnItemClickListener({ parent, view, position, id ->
-          this.log.debug("select item: {}", position)
-          this.player_toc_adapter.setSelectedItem(position)
-          this.onSpineElementStatusChanged()
+        this.player_toc.onItemClickListener = object: AdapterView.OnItemClickListener{
+          private var last_position = -1
+          private var last_time = 0L
+
+          override fun onItemClick(
+            parent: AdapterView<*>?,
+            view: View?,
+            position: Int,
+            id: Long) {
+
+            val time_now = SystemClock.elapsedRealtime()
+            val time_diff = time_now - this.last_time
+
+            this@PlayerActivity.log.debug(
+              "clicked: {} at {} (diff {})", position, time_now, time_diff)
+
+            if (position == this.last_position && time_diff < 250L) {
+              val item = state.book.spine[position]
+              this@PlayerActivity.log.debug("clicked: triggering item {}", item.index)
+              state.book.player.playAtLocation(item.position)
+            }
+
+            this.last_position = position
+            this.last_time = time_now
+            this@PlayerActivity.onSpineElementStatusChanged()
+          }
+        }
+
+        this.player_skip_forward.setOnClickListener({
+          state.book.player.skipToNextChapter()
+        })
+
+        this.player_skip_backward.setOnClickListener({
+          state.book.player.skipToPreviousChapter()
         })
 
         this.player_play.setOnClickListener({
@@ -240,76 +308,131 @@ class PlayerActivity : Activity() {
     this.log.debug("onPlayerEvent: {}", event)
 
     return when (event) {
-      is PlayerEventPlaybackStarted ->
-        this.onPlayerEventPlaybackStarted(event)
-      is PlayerEventPlaybackProgressUpdate ->
-        this.onPlayerEventProgressUpdate(event)
-      is PlayerEventChapterCompleted ->
-        this.onPlayerEventChapterCompleted(event)
-      is PlayerEventUnavailableForPlayback ->
-        this.onPlayerEventUnavailableForPlayback(event)
-      is PlayerEventPlaybackStopped ->
-        this.onPlayerEventPlaybackStopped(event)
+      is PlayerEventPlaybackStarted -> this.onPlayerEventPlaybackStarted(event)
+      is PlayerEventPlaybackProgressUpdate -> this.onPlayerEventProgressUpdate(event)
+      is PlayerEventChapterCompleted -> this.onPlayerEventChapterCompleted(event)
+      is PlayerEventPlaybackStopped -> this.onPlayerEventPlaybackStopped(event)
+      is PlayerEventPlaybackPaused -> this.onPlayerEventPlaybackPaused(event)
+      is PlayerEventPlaybackBuffering -> this.onPlayerEventPlaybackBuffering(event)
     }
   }
 
-  private fun onPlayerEventPlaybackStarted(event: PlayerEvent) {
+  private fun onPlayerEventPlaybackBuffering(event: PlayerEventPlaybackBuffering) {
+    this.log.debug("onPlayerEventPlaybackBuffering")
+
+    UIThread.runOnUIThread(Runnable {
+      this.player_toc_adapter.setItemPlayingStatus(PlayerSpineElementBuffering(event.spineElement))
+      this.onConfigurePlayerControls(event.spineElement, event.offsetMilliseconds, playing = true)
+      this.onSpineElementStatusChanged()
+    })
+  }
+
+  private fun onPlayerEventPlaybackPaused(event: PlayerEventPlaybackPaused) {
+    this.log.debug("onPlayerEventPlaybackPaused")
+
+    UIThread.runOnUIThread(Runnable {
+      this.player_toc_adapter.setItemPlayingStatus(PlayerSpineElementPaused(event.spineElement))
+      this.onConfigurePlayerControls(event.spineElement, event.offsetMilliseconds, playing = false)
+      this.onSpineElementStatusChanged()
+    })
+  }
+
+  private fun onPlayerEventPlaybackStarted(event: PlayerEventPlaybackStarted) {
     this.log.debug("onPlayerEventPlaybackStarted")
 
-    /*
-     * Set the "play" button to "pause".
-     */
-
-    UIThread.runOnUIThread(Runnable { this.player_play.setText(R.string.player_pause) })
+    UIThread.runOnUIThread(Runnable {
+      this.player_toc_adapter.setItemPlayingStatus(PlayerSpineElementPlaying(event.spineElement))
+      this.onConfigurePlayerControls(event.spineElement, event.offsetMilliseconds, playing = true)
+      this.onSpineElementStatusChanged()
+    })
   }
 
-  private fun onPlayerEventProgressUpdate(event: PlayerEvent) {
+  private fun onPlayerEventProgressUpdate(event: PlayerEventPlaybackProgressUpdate) {
     this.log.debug("onPlayerEventProgressUpdate")
+
+    UIThread.runOnUIThread(Runnable {
+      this.player_toc_adapter.setItemPlayingStatus(PlayerSpineElementPlaying(event.spineElement))
+      this.onSpineElementStatusChanged()
+      this.onConfigurePlayerControls(event.spineElement, event.offsetMilliseconds, playing = true)
+    })
   }
 
-  private fun onPlayerEventChapterCompleted(event: PlayerEvent) {
+  private fun onPlayerEventChapterCompleted(event: PlayerEventChapterCompleted) {
     this.log.debug("onPlayerEventChapterCompleted")
+
+    UIThread.runOnUIThread(Runnable {
+      this.onChapterButtonsConfigure(event.spineElement)
+      this.onSpineElementStatusChanged()
+    })
   }
 
-  private fun onPlayerEventUnavailableForPlayback(event: PlayerEvent) {
-    this.log.debug("onPlayerEventUnavailableForPlayback")
-  }
-
-  private fun onPlayerEventPlaybackStopped(event: PlayerEvent) {
+  private fun onPlayerEventPlaybackStopped(event: PlayerEventPlaybackStopped) {
     this.log.debug("onPlayerEventPlaybackStopped")
 
-    /*
-     * Set the "pause" button to "play".
-     */
+    UIThread.runOnUIThread(Runnable {
+      this.player_toc_adapter.setItemPlayingStatus(PlayerSpineElementNotPlaying)
+      this.onConfigurePlayerControls(event.spineElement, event.offsetMilliseconds, playing = false)
+      this.onSpineElementStatusChanged()
+    })
+  }
 
-    UIThread.runOnUIThread(Runnable { this.player_play.setText(R.string.player_play) })
+  private fun onConfigurePlayerControls(
+    spineElement: PlayerSpineElementType,
+    offsetMilliseconds: Int,
+    playing: Boolean) {
+
+    if (playing) {
+      this.player_play.setText(R.string.player_pause)
+    } else {
+      this.player_play.setText(R.string.player_play)
+    }
+
+    this.player_time.setText(this.hmsTextFromMilliseconds(offsetMilliseconds))
+    this.player_time_maximum.setText(this.hmsTextFromDuration(spineElement.duration))
+
+    this.player_bar.max =
+      spineElement.duration.standardSeconds.toInt()
+    this.player_bar.progress =
+      TimeUnit.MILLISECONDS.toSeconds(offsetMilliseconds.toLong()).toInt()
+
+    this.onChapterButtonsConfigure(spineElement)
+  }
+
+  private fun hmsTextFromMilliseconds(milliseconds: Int): String {
+    return this.periodFormatter.print(Duration.millis(milliseconds.toLong()).toPeriod())
+  }
+
+  private fun hmsTextFromDuration(duration: Duration): String {
+    return this.periodFormatter.print(duration.toPeriod())
+  }
+
+  private fun onChapterButtonsConfigure(spineElement: PlayerSpineElementType) {
+    UIThread.checkIsUIThread()
+
+    this.player_skip_backward.isClickable = false
+    this.player_skip_forward.isClickable = false
+
+    if (spineElement.index > 0) {
+      this.player_skip_backward.isClickable = true
+    }
+    if (spineElement.index < spineElement.book.spine.size - 1) {
+      this.player_skip_forward.isClickable = true
+    }
   }
 
   /**
-   * A reconfigurable view that shows the status of a spine element.
+   * A reconfigurable view that shows the downloadStatus of a spine element.
    */
 
   private class PlayerSpineElementView(
-    context: Activity,
+    val context: Activity,
     attrs: AttributeSet?) : FrameLayout(context, attrs) {
 
-    private var view_initial: ViewGroup
-    private var view_initial_title: TextView
-    private var view_initial_download: Button
-
-    private var view_downloading: ViewGroup
-    private var view_downloading_title: TextView
-    private var view_downloading_progress: ProgressBar
-    private var view_downloading_cancel: Button
-
-    private var view_download_failed: ViewGroup
-    private var view_download_failed_text: TextView
-    private var view_download_failed_dismiss: Button
-
-    private var view_downloaded: ViewGroup
-    private var view_downloaded_title: TextView
-    private var view_downloaded_delete: Button
-    private var view_downloaded_image: ImageView
+    private var view_group: ViewGroup
+    private var view_group_download_status: ImageView
+    private var view_group_play_status: ImageView
+    private var view_group_title: TextView
+    private var view_group_operation: ImageView
 
     private lateinit var item: PlayerSpineElementType
 
@@ -318,165 +441,155 @@ class PlayerActivity : Activity() {
     private val color_selected: Int
 
     init {
-      context.layoutInflater.inflate(R.layout.player_toc_entry, this, true)
+      this.context.layoutInflater.inflate(R.layout.player_toc_entry, this, true)
 
-      this.view_initial =
-        this.findViewById(R.id.player_toc_entry_initial)
-      this.view_initial_title =
-        this.view_initial.findViewById(R.id.player_toc_entry_initial_title)
-      this.view_initial_download =
-        this.view_initial.findViewById(R.id.player_toc_entry_initial_download)
+      this.view_group =
+        this.findViewById(R.id.player_toc_entry)
+      this.view_group_title =
+        this.view_group.findViewById(R.id.player_toc_entry_title)
+      this.view_group_download_status =
+        this.view_group.findViewById(R.id.player_toc_entry_download_status)
+      this.view_group_play_status =
+        this.view_group.findViewById(R.id.player_toc_entry_play_status)
+      this.view_group_operation =
+        this.view_group.findViewById(R.id.player_toc_entry_op)
 
-      this.view_downloading =
-        this.findViewById(R.id.player_toc_entry_downloading)
-      this.view_downloading_title =
-        this.view_downloading.findViewById(R.id.player_toc_entry_downloading_title)
-      this.view_downloading_progress =
-        this.view_downloading.findViewById(R.id.player_toc_entry_downloading_progress)
-      this.view_downloading_cancel =
-        this.view_downloading.findViewById(R.id.player_toc_entry_downloading_cancel)
-
-      this.view_download_failed =
-        this.findViewById(R.id.player_toc_entry_download_failed)
-      this.view_download_failed_text =
-        this.view_download_failed.findViewById(R.id.player_toc_entry_download_failed_text)
-      this.view_download_failed_dismiss =
-        this.view_download_failed.findViewById(R.id.player_toc_entry_download_failed_dismiss)
-
-      this.view_downloaded =
-        this.findViewById(R.id.player_toc_entry_downloaded)
-      this.view_downloaded_title =
-        this.view_downloaded.findViewById(R.id.player_toc_entry_downloaded_title)
-      this.view_downloaded_delete =
-        this.view_downloaded.findViewById(R.id.player_toc_entry_downloaded_delete)
-      this.view_downloaded_image =
-        this.view_downloaded.findViewById(R.id.player_toc_entry_downloaded_image)
-
-      this.view_initial.visibility = View.VISIBLE
-      this.view_downloading.visibility = View.GONE
-      this.view_download_failed.visibility = View.GONE
-      this.view_downloaded.visibility = View.GONE
-
-      this.view_downloading_progress.max = 100
-
-      this.color_playing = context.resources.getColor(R.color.background_playing)
-      this.color_neutral = context.resources.getColor(R.color.background_neutral)
-      this.color_selected = context.resources.getColor(R.color.background_selected)
+      this.color_playing = this.context.resources.getColor(R.color.background_playing)
+      this.color_neutral = this.context.resources.getColor(R.color.background_neutral)
+      this.color_selected = this.context.resources.getColor(R.color.background_selected)
     }
 
-    fun viewConfigure(item: PlayerSpineElementType, selected: Boolean) {
+    fun viewConfigure(
+      item: PlayerSpineElementType,
+      selected: Boolean,
+      item_playing_status: PlayerSpineElementPlayingStatus) {
       UIThread.checkIsUIThread()
 
       this.item = item
-      this.view_initial_title.text = item.title
-      this.view_downloading_title.text = item.title
-      this.view_downloaded_title.text = item.title
+      this.view_group_title.text =
+        String.format("%03d.    %s", item.index, item.title)
 
-      val status = item.status
-      when (status) {
-        is PlayerSpineElementInitial -> {
-          this.view_downloading.visibility = View.GONE
-          this.view_download_failed.visibility = View.GONE
-          this.view_downloaded.visibility = View.GONE
-          this.view_initial.visibility = View.VISIBLE
+      this.view_group.setBackgroundColor(this.color_neutral)
+      this.view_group_title.setTypeface(null, Typeface.NORMAL)
+      this.view_group_play_status.visibility = View.INVISIBLE
 
-          /*
-           * Work around an Android bug: List items become unclickable if focusability isn't
-           * specified.
-           */
-
-          this.view_initial.descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
-
-          if (selected) {
-            this.view_initial.setBackgroundColor(this.color_selected)
-          } else {
-            this.view_initial.setBackgroundColor(this.color_neutral)
-          }
-
-          this.view_initial_download.setOnClickListener { item.downloadTask.fetch() }
-        }
-
-        is PlayerSpineElementDownloadFailed -> {
-          this.view_downloading.visibility = View.GONE
-          this.view_download_failed.visibility = View.VISIBLE
-          this.view_downloaded.visibility = View.GONE
-          this.view_initial.visibility = View.GONE
-
-          /*
-           * Work around an Android bug: List items become unclickable if focusability isn't
-           * specified.
-           */
-
-          this.view_download_failed.descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
-
-          this.view_download_failed_text.text = status.message
-          this.view_download_failed_dismiss.setOnClickListener { item.downloadTask.delete() }
-        }
-
-        is PlayerSpineElementDownloaded -> {
-          this.view_downloading.visibility = View.GONE
-          this.view_download_failed.visibility = View.GONE
-          this.view_downloaded.visibility = View.VISIBLE
-          this.view_initial.visibility = View.GONE
-
-          /*
-           * Work around an Android bug: List items become unclickable if focusability isn't
-           * specified.
-           */
-
-          this.view_downloaded.descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
-
-          this.view_downloaded.setBackgroundColor(this.color_neutral)
-          this.view_downloaded_image.setImageResource(R.drawable.book)
-          this.view_downloaded_title.setTypeface(null, Typeface.NORMAL)
-
-          if (selected) {
-            this.view_downloaded.setBackgroundColor(this.color_selected)
-          }
-
-          when (status.playing) {
-            STOPPED -> {
-
-            }
-            PAUSED -> {
-              this.view_downloaded_image.setImageResource(R.drawable.pause)
-              this.view_downloaded.setBackgroundColor(this.color_playing)
-              this.view_downloaded_title.setTypeface(null, Typeface.BOLD)
-            }
-            PLAYING -> {
-              this.view_downloaded_image.setImageResource(R.drawable.playing)
-              this.view_downloaded.setBackgroundColor(this.color_playing)
-              this.view_downloaded_title.setTypeface(null, Typeface.BOLD)
-            }
-          }
-
-          this.view_downloaded_delete.setOnClickListener { item.downloadTask.delete() }
+      when (item.downloadStatus) {
+        PlayerSpineElementNotDownloaded -> {
+          this.view_group_download_status.setImageResource(R.drawable.empty)
+          this.view_group_operation.setImageResource(R.drawable.download)
+          this.view_group_operation.setOnClickListener({ item.downloadTask.fetch() })
         }
 
         is PlayerSpineElementDownloading -> {
-          this.view_downloading.visibility = View.VISIBLE
-          this.view_download_failed.visibility = View.GONE
-          this.view_downloaded.visibility = View.GONE
-          this.view_initial.visibility = View.GONE
+          this.view_group_download_status.setImageResource(R.drawable.download)
+          this.view_group_operation.setImageResource(R.drawable.stop)
+          this.view_group_operation.setOnClickListener({ this.showDownloadCancelConfirm(item) })
+        }
 
-          /*
-           * Work around an Android bug: List items become unclickable if focusability isn't
-           * specified.
-           */
+        PlayerSpineElementDownloaded -> {
+          this.view_group_download_status.setImageResource(R.drawable.book)
+          this.view_group_operation.setImageResource(R.drawable.delete)
+          this.view_group_operation.setOnClickListener({ this.showDeleteConfirm(item) })
+        }
 
-          this.view_downloading.descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
+        is PlayerSpineElementDownloadFailed -> {
+          this.view_group_download_status.setImageResource(R.drawable.error)
+          this.view_group_operation.setImageResource(R.drawable.reload)
+          this.view_group_operation.setOnClickListener({ item.downloadTask.delete() })
+        }
+      }
 
-          if (selected) {
-            this.view_downloading.setBackgroundColor(this.color_selected)
-          } else {
-            this.view_downloading.setBackgroundColor(this.color_neutral)
+      if (selected) {
+        this.view_group.setBackgroundColor(this.color_selected)
+      }
+
+      /*
+       * Configure the UI components based on the status of the playing item. Note that the
+       * playing item may not be the currently configured item.
+       */
+
+      when (item_playing_status) {
+        PlayerSpineElementNotPlaying -> {
+
+        }
+
+        is PlayerSpineElementPlaying -> {
+          if (item_playing_status.element == item) {
+            this.view_group.setBackgroundColor(this.color_playing)
+            this.view_group_play_status.visibility = View.VISIBLE
+            this.view_group_play_status.setImageResource(R.drawable.pause)
+            this.view_group_title.setTypeface(null, Typeface.BOLD)
           }
+        }
 
-          this.view_downloading_progress.progress = status.progress
-          this.view_downloading_cancel.setOnClickListener { item.downloadTask.delete() }
+        is PlayerSpineElementBuffering -> {
+          if (item_playing_status.element == item) {
+            this.view_group.setBackgroundColor(this.color_playing)
+            this.view_group_play_status.visibility = View.VISIBLE
+            this.view_group_play_status.setImageResource(R.drawable.buffering)
+            this.view_group_title.setTypeface(null, Typeface.BOLD)
+          }
+        }
+
+        is PlayerSpineElementPaused -> {
+          if (item_playing_status.element == item) {
+            this.view_group.setBackgroundColor(this.color_playing)
+            this.view_group_play_status.visibility = View.VISIBLE
+            this.view_group_play_status.setImageResource(R.drawable.playing)
+            this.view_group_title.setTypeface(null, Typeface.BOLD)
+          }
         }
       }
     }
+
+    private fun showDeleteConfirm(item: PlayerSpineElementType) {
+      val dialog =
+        AlertDialog.Builder(this.context)
+          .setCancelable(true)
+          .setMessage(R.string.book_delete_confirm)
+          .setPositiveButton(
+            R.string.book_delete,
+            { _: DialogInterface, _: Int -> item.downloadTask.delete() })
+          .setNegativeButton(
+            R.string.book_delete_keep,
+            { _: DialogInterface, _: Int -> })
+          .create()
+      dialog.show()
+    }
+
+    private fun showDownloadCancelConfirm(item: PlayerSpineElementType) {
+      val dialog =
+        AlertDialog.Builder(this.context)
+          .setCancelable(true)
+          .setMessage(R.string.book_download_stop_confirm)
+          .setPositiveButton(
+            R.string.book_download_stop,
+            { _: DialogInterface, _: Int -> item.downloadTask.delete() })
+          .setNegativeButton(
+            R.string.book_download_continue,
+            { _: DialogInterface, _: Int -> })
+          .create()
+      dialog.show()
+    }
+  }
+
+  private sealed class PlayerSpineElementPlayingStatus {
+
+    object PlayerSpineElementNotPlaying
+      : PlayerSpineElementPlayingStatus()
+
+    data class PlayerSpineElementPlaying(
+      val element : PlayerSpineElementType)
+      : PlayerSpineElementPlayingStatus()
+
+    data class PlayerSpineElementBuffering(
+      val element : PlayerSpineElementType)
+      : PlayerSpineElementPlayingStatus()
+
+    data class PlayerSpineElementPaused(
+      val element : PlayerSpineElementType)
+      : PlayerSpineElementPlayingStatus()
+
   }
 
   /**
@@ -495,14 +608,22 @@ class PlayerActivity : Activity() {
 
       val item = this.items.get(position)
       val view = reuse as PlayerSpineElementView? ?: PlayerSpineElementView(this.context, null)
-      view.viewConfigure(item, position == this.item_selected)
+      view.viewConfigure(
+        item = item,
+        selected = position == this.item_selected,
+        item_playing_status = this.item_playing)
       return view
     }
 
     private var item_selected: Int = -1
+    private var item_playing: PlayerSpineElementPlayingStatus = PlayerSpineElementNotPlaying
 
-    fun setSelectedItem(position: Int) {
+    fun setItemSelected(position: Int) {
       this.item_selected = position
+    }
+
+    fun setItemPlayingStatus(status: PlayerSpineElementPlayingStatus) {
+      this.item_playing = status
     }
   }
 
@@ -621,12 +742,15 @@ class PlayerActivity : Activity() {
         val book = PlayerFindawayAudioBook.create(this, manifest_result.result)
 
         /*
-         * Subscribe to spine element status updates.
+         * Subscribe to spine element downloadStatus updates.
          */
 
-        this.spine_element_subscription = book.spineElementStatusUpdates.subscribe(
+        this.spine_element_subscription = book.spineElementDownloadStatus.subscribe(
           { event -> this.onSpineElementStatusChanged() },
           { error -> this.onSpineElementStatusError(error!!) })
+        this.player_event_subscription = book.player.events.subscribe(
+          { event -> this.onPlayerEvent(event) },
+          { error -> this.onPlayerError(error) })
 
         /*
          * Configure the view state.
@@ -640,7 +764,7 @@ class PlayerActivity : Activity() {
         this.log.debug("onProcessManifestIsFindaway: finished")
 
         /*
-         * The book has been opened, status updates have been issued for all of the parts. Now
+         * The book has been opened, downloadStatus updates have been issued for all of the parts. Now
          * tell the UI that everything has been updated.
          */
 
@@ -661,7 +785,9 @@ class PlayerActivity : Activity() {
      * the correct states onscreen.
      */
 
-    UIThread.runOnUIThread(Runnable { this.player_toc_adapter.notifyDataSetChanged() })
+    UIThread.runOnUIThread(Runnable {
+      this.player_toc_adapter.notifyDataSetChanged()
+    })
   }
 
   private fun onURIFetchFailure(e: IOException?) {

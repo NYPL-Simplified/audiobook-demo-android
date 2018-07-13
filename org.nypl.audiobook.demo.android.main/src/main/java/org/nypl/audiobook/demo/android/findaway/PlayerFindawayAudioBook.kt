@@ -3,21 +3,15 @@ package org.nypl.audiobook.demo.android.findaway
 import android.content.Context
 import io.audioengine.mobile.AudioEngine
 import io.audioengine.mobile.config.LogLevel
+import org.joda.time.Duration
 import org.nypl.audiobook.demo.android.api.PlayerAudioBookType
-import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus
+import org.nypl.audiobook.demo.android.api.PlayerSpineElementDownloadStatus
 import org.nypl.audiobook.demo.android.api.PlayerSpineElementType
 import org.nypl.audiobook.demo.android.api.PlayerType
 import org.slf4j.LoggerFactory
-import rx.Observable
 import rx.subjects.PublishSubject
 import java.util.SortedMap
 import java.util.TreeMap
-import kotlin.collections.ArrayList
-import kotlin.collections.HashMap
-import kotlin.collections.List
-import kotlin.collections.Map
-import kotlin.collections.first
-import kotlin.collections.forEach
 
 /**
  * A Findaway based implementation of the {@link PlayerAudioBookType} interface.
@@ -26,10 +20,10 @@ import kotlin.collections.forEach
 class PlayerFindawayAudioBook private constructor(
   val manifest: PlayerFindawayManifest,
   private val engine: AudioEngine,
-  private val statusEvents: PublishSubject<PlayerSpineElementStatus>,
   override val spine: List<PlayerFindawaySpineElement>,
   override val spineByID: Map<String, PlayerFindawaySpineElement>,
-  override val spineByPartAndChapter: SortedMap<Int, SortedMap<Int, PlayerSpineElementType>>)
+  override val spineByPartAndChapter: SortedMap<Int, SortedMap<Int, PlayerSpineElementType>>,
+  override val spineElementDownloadStatus: PublishSubject<PlayerSpineElementDownloadStatus>)
   : PlayerAudioBookType {
 
   override fun spineElementInitial(): PlayerSpineElementType? {
@@ -65,9 +59,6 @@ class PlayerFindawayAudioBook private constructor(
   override val title: String
     get() = this.manifest.title
 
-  override val spineElementStatusUpdates: Observable<PlayerSpineElementStatus>
-    get() = this.statusEvents
-
   companion object {
 
     private val log = LoggerFactory.getLogger(PlayerFindawayAudioBook::class.java)
@@ -90,7 +81,7 @@ class PlayerFindawayAudioBook private constructor(
        * Set up all the various bits of state required.
        */
 
-      val statusEvents : PublishSubject<PlayerSpineElementStatus> = PublishSubject.create()
+      val statusEvents: PublishSubject<PlayerSpineElementDownloadStatus> = PublishSubject.create()
       val engine = AudioEngine.getInstance()
       val elements = ArrayList<PlayerFindawaySpineElement>()
       val elements_by_id = HashMap<String, PlayerFindawaySpineElement>()
@@ -99,14 +90,19 @@ class PlayerFindawayAudioBook private constructor(
       var index = 0
       var spine_item_previous: PlayerFindawaySpineElement? = null
       manifest.spineItems.forEach { spine_item ->
+
+        val duration =
+          Duration.standardSeconds(Math.floor(spine_item.duration).toLong())
+
         val element =
           PlayerFindawaySpineElement(
             engine = engine,
-            statusEvents = statusEvents,
+            downloadStatusEvents = statusEvents,
             itemManifest = spine_item,
             bookManifest = manifest,
             index = index,
-            nextElement = null)
+            nextElement = null,
+            duration = duration)
 
         elements.add(element)
         elements_by_id.put(element.id, element)
@@ -124,13 +120,18 @@ class PlayerFindawayAudioBook private constructor(
         spine_item_previous = element
       }
 
-      return PlayerFindawayAudioBook(
+      val book = PlayerFindawayAudioBook(
         manifest = manifest,
         engine = engine,
-        statusEvents = statusEvents,
         spine = elements,
         spineByID = elements_by_id,
-        spineByPartAndChapter = elements_by_part as SortedMap<Int, SortedMap<Int, PlayerSpineElementType>>)
+        spineByPartAndChapter = elements_by_part as SortedMap<Int, SortedMap<Int, PlayerSpineElementType>>,
+        spineElementDownloadStatus = statusEvents)
+
+      for (e in elements) {
+        e.setBook(book)
+      }
+      return book
     }
 
     /**

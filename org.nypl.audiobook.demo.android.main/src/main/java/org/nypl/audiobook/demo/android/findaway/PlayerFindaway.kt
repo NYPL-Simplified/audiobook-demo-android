@@ -2,23 +2,31 @@ package org.nypl.audiobook.demo.android.findaway
 
 import io.audioengine.mobile.AudioEngine
 import io.audioengine.mobile.PlaybackEvent
+import io.audioengine.mobile.PlaybackEvent.CHAPTER_PLAYBACK_COMPLETED
+import io.audioengine.mobile.PlaybackEvent.ERROR_PREPARING_PLAYER
+import io.audioengine.mobile.PlaybackEvent.NO_CURRENT_CHAPTER
+import io.audioengine.mobile.PlaybackEvent.NO_CURRENT_CONTENT
+import io.audioengine.mobile.PlaybackEvent.PLAYBACK_BUFFERING_ENDED
+import io.audioengine.mobile.PlaybackEvent.PLAYBACK_BUFFERING_STARTED
+import io.audioengine.mobile.PlaybackEvent.PLAYBACK_ENDED
+import io.audioengine.mobile.PlaybackEvent.PLAYBACK_PAUSED
+import io.audioengine.mobile.PlaybackEvent.PLAYBACK_PREPARING
+import io.audioengine.mobile.PlaybackEvent.PLAYBACK_PROGRESS_UPDATE
+import io.audioengine.mobile.PlaybackEvent.PLAYBACK_STARTED
+import io.audioengine.mobile.PlaybackEvent.PLAYBACK_STOPPED
+import io.audioengine.mobile.PlaybackEvent.SEEK_COMPLETE
+import io.audioengine.mobile.PlaybackEvent.UNABLE_TO_AQUIRE_AUDIO_FOCUS
+import io.audioengine.mobile.PlaybackEvent.UNKNOWN_PLAYBACK_ERROR
 import io.audioengine.mobile.play.PlayerState
 import org.nypl.audiobook.demo.android.api.PlayerEvent
 import org.nypl.audiobook.demo.android.api.PlayerEvent.PlayerEventChapterCompleted
+import org.nypl.audiobook.demo.android.api.PlayerEvent.PlayerEventPlaybackBuffering
+import org.nypl.audiobook.demo.android.api.PlayerEvent.PlayerEventPlaybackPaused
 import org.nypl.audiobook.demo.android.api.PlayerEvent.PlayerEventPlaybackProgressUpdate
 import org.nypl.audiobook.demo.android.api.PlayerEvent.PlayerEventPlaybackStarted
 import org.nypl.audiobook.demo.android.api.PlayerEvent.PlayerEventPlaybackStopped
 import org.nypl.audiobook.demo.android.api.PlayerPlaybackRate
 import org.nypl.audiobook.demo.android.api.PlayerPosition
-import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus
-import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus.PlayerSpineElementDownloadFailed
-import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus.PlayerSpineElementDownloaded
-import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus.PlayerSpineElementDownloading
-import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus.PlayerSpineElementInitial
-import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus.Playing.PAUSED
-import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus.Playing.PLAYING
-import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus.Playing.STOPPED
-import org.nypl.audiobook.demo.android.api.PlayerSpineElementType
 import org.nypl.audiobook.demo.android.api.PlayerType
 import org.slf4j.LoggerFactory
 import rx.Observable
@@ -30,13 +38,17 @@ class PlayerFindaway(
   : PlayerType {
 
   override val isPlaying: Boolean
-    get() = synchronized(this.state.lock, { this.state.isPlaying })
+    get() = synchronized(this.stateLock, { this.state.isPlaying })
 
   override val events: Observable<PlayerEvent>
-    get() = this.event_source
+    get() = this.eventSource
 
   private val log = LoggerFactory.getLogger(PlayerFindaway::class.java)
-  private val event_source: PublishSubject<PlayerEvent> = PublishSubject.create()
+  private val eventSource: PublishSubject<PlayerEvent> = PublishSubject.create()
+  private var chapterCompleting: Boolean = false
+
+  private val stateLock: Any = Object()
+  @net.jcip.annotations.GuardedBy("stateLock")
   private val state: State
 
   /**
@@ -45,7 +57,6 @@ class PlayerFindaway(
    */
 
   private data class State(
-    val lock: Any,
     var rate: PlayerPlaybackRate = PlayerPlaybackRate.NORMAL_TIME,
     var isPlaying: Boolean,
     var spineItem: PlayerFindawaySpineElement,
@@ -58,7 +69,6 @@ class PlayerFindaway(
   init {
     this.state =
       State(
-        lock = Any(),
         rate = PlayerPlaybackRate.NORMAL_TIME,
         isPlaying = false,
         spineItem = this.findSpineItemInitial(this.book),
@@ -75,9 +85,9 @@ class PlayerFindaway(
 
   override var playbackRate: PlayerPlaybackRate
     get() =
-      synchronized(this.state.lock, { this.state.rate })
+      synchronized(this.stateLock, { this.state.rate })
     set(value) {
-      synchronized(this.state.lock) {
+      synchronized(this.stateLock) {
         this.state.rate = value
       }
       this.engine.playbackEngine.speed = value.speed.toFloat()
@@ -88,33 +98,11 @@ class PlayerFindaway(
    */
 
   private fun findSpineItemInitial(book: PlayerFindawayAudioBook): PlayerFindawaySpineElement {
-    if (book.spine.size > 0) {
+    if (book.spine.isNotEmpty()) {
       return book.spine[0]
     } else {
       throw IllegalStateException("Book has no spine items")
     }
-  }
-
-  /**
-   * Find the next spine item, if one is available. A spine item is available if it both exists
-   * and is downloaded.
-   */
-
-  private fun findSpineItemNextIfAvailable(item: PlayerSpineElementType): PlayerSpineElementType? {
-    val next = item.next
-    if (next != null) {
-      return when (next.status) {
-        is PlayerSpineElementInitial -> null
-        is PlayerSpineElementDownloading -> null
-        is PlayerSpineElementDownloadFailed -> null
-        is PlayerSpineElementDownloaded -> next
-      }
-    }
-    return null
-  }
-
-  private fun enginePlaySpineElement(element: PlayerFindawaySpineElement) {
-    this.enginePlay(element.position)
   }
 
   private fun enginePlay(playhead: PlayerPosition) {
@@ -139,7 +127,7 @@ class PlayerFindaway(
 
   private fun onPlaybackState(state: PlayerState?) {
     this.log.debug("onPlaybackState: {}: {}",
-      synchronized(this.state.lock, { this.state.playhead }), state)
+      synchronized(this.stateLock, { this.state.playhead }), state)
     this.updatePlayheadFromEngine()
   }
 
@@ -157,63 +145,38 @@ class PlayerFindaway(
     }
 
     when (event.code) {
-      PlaybackEvent.PLAYBACK_STARTED ->
-        this.onPlaybackEventPlaybackStarted()
+      PLAYBACK_STARTED -> this.onPlaybackEventPlaybackStarted()
+      CHAPTER_PLAYBACK_COMPLETED -> this.onPlaybackEventChapterCompleted()
+      PLAYBACK_ENDED -> this.onPlaybackEventPlaybackStopped()
+      PLAYBACK_PAUSED -> this.onPlaybackEventPlaybackPaused()
+      PLAYBACK_STOPPED -> this.onPlaybackEventPlaybackStopped()
+      PLAYBACK_PREPARING -> this.onPlaybackEventPreparing()
+      PLAYBACK_BUFFERING_STARTED -> this.onPlaybackEventBufferingStarted()
+      PLAYBACK_BUFFERING_ENDED -> this.onPlaybackEventBufferingEnded()
 
-      PlaybackEvent.CHAPTER_PLAYBACK_COMPLETED ->
-        this.onPlaybackEventChapterCompleted()
-
-      PlaybackEvent.PLAYBACK_ENDED -> {
-        this.log.debug("onPlaybackEvent: playback ended")
-        this.updatePlayheadFromEngine()
-      }
-
-      PlaybackEvent.PLAYBACK_PAUSED ->
-        this.onPlaybackEventPlaybackPaused()
-
-      PlaybackEvent.PLAYBACK_STOPPED ->
-        this.onPlaybackEventPlaybackStopped()
-
-      PlaybackEvent.PLAYBACK_PREPARING -> {
-        this.log.debug("onPlaybackEvent: playback preparing")
-        this.updatePlayheadFromEngine()
-      }
-
-      PlaybackEvent.PLAYBACK_BUFFERING_STARTED -> {
-        this.log.debug("onPlaybackEvent: playback buffering started")
-        this.updatePlayheadFromEngine()
-      }
-
-      PlaybackEvent.PLAYBACK_BUFFERING_ENDED -> {
-        this.log.debug("onPlaybackEvent: playback buffering ended")
-        this.updatePlayheadFromEngine()
-      }
-
-      PlaybackEvent.SEEK_COMPLETE -> {
+      SEEK_COMPLETE -> {
         this.log.debug("onPlaybackEvent: seek complete")
-        this.updatePlayheadFromEngine()
       }
 
-      PlaybackEvent.PLAYBACK_PROGRESS_UPDATE ->
-        this.onPlaybackEventPlaybackProgressUpdate()
+      PLAYBACK_PROGRESS_UPDATE -> this.onPlaybackEventPlaybackProgressUpdate()
 
-      PlaybackEvent.UNKNOWN_PLAYBACK_ERROR -> {
+      UNKNOWN_PLAYBACK_ERROR -> {
         this.log.debug("onPlaybackEvent: unknown playback error")
       }
 
-      PlaybackEvent.UNABLE_TO_AQUIRE_AUDIO_FOCUS -> {
+      UNABLE_TO_AQUIRE_AUDIO_FOCUS -> {
         this.log.debug("onPlaybackEvent: unable to acquire audio focus")
       }
 
-      PlaybackEvent.ERROR_PREPARING_PLAYER -> {
+      ERROR_PREPARING_PLAYER -> {
         this.log.debug("onPlaybackEvent: error preparing player")
       }
 
-      PlaybackEvent.NO_CURRENT_CONTENT -> {
+      NO_CURRENT_CONTENT -> {
         this.log.debug("onPlaybackEvent: no current content")
       }
 
-      PlaybackEvent.NO_CURRENT_CHAPTER -> {
+      NO_CURRENT_CHAPTER -> {
         this.log.debug("onPlaybackEvent: no current chapter")
       }
 
@@ -223,121 +186,94 @@ class PlayerFindaway(
     }
   }
 
-  private fun onPlaybackEventPlaybackProgressUpdate() {
-    this.log.debug("onPlaybackEventPlaybackProgressUpdate")
-    this.updatePlayheadFromEngine()
-
-    val new_playhead = this.updatePlayheadFromEngine()
-    this.publishPlayingState(new_playhead.spineItem, PLAYING)
-
-    this.event_source.onNext(PlayerEventPlaybackProgressUpdate(
-      new_playhead.spineItem,
-      new_playhead.position.offsetMilliseconds))
+  private fun onPlaybackEventPreparing() {
+    this.log.debug("onPlaybackEvent: playback preparing")
   }
 
-  private fun onPlaybackEventPlaybackPaused() {
-    this.log.debug("onPlaybackEventPlaybackPaused")
-    this.updatePlayheadFromEngine()
-
-    val new_playhead = this.updatePlayheadFromEngine()
-    this.publishPlayingState(new_playhead.spineItem, PAUSED)
-
-    this.event_source.onNext(PlayerEventPlaybackStopped(
-      new_playhead.spineItem,
-      new_playhead.position.offsetMilliseconds))
+  private fun onPlaybackEventBufferingEnded() {
+    this.log.debug("onPlaybackEvent: playback buffering ended")
   }
 
-  private fun onPlaybackEventPlaybackStopped() {
-    this.log.debug("onPlaybackEventPlaybackStopped")
+  private fun onPlaybackEventBufferingStarted() {
+    this.log.debug("onPlaybackEvent: playback buffering started")
 
     val new_playhead = this.updatePlayheadFromEngine()
-    this.publishPlayingState(new_playhead.spineItem, STOPPED)
 
-    this.event_source.onNext(PlayerEventPlaybackStopped(
-      new_playhead.spineItem,
-      new_playhead.position.offsetMilliseconds))
-  }
-
-  private fun publishPlayingState(
-    spineItem: PlayerFindawaySpineElement,
-    playing: PlayerSpineElementStatus.Playing) {
-    val status_now = spineItem.status
-    when (status_now) {
-      PlayerSpineElementInitial,
-      is PlayerSpineElementDownloading,
-      is PlayerSpineElementDownloadFailed -> {
-        this.log.debug("publishPlayingState: not publishing {}", status_now)
-      }
-      is PlayerSpineElementDownloaded -> {
-        this.log.debug("publishPlayingState: publishing playing = {}", playing)
-        spineItem.setStatus(PlayerSpineElementDownloaded(playing = playing))
-      }
-    }
+    this.eventSource.onNext(
+      synchronized(this.stateLock, {
+        PlayerEventPlaybackBuffering(
+          spineElement = new_playhead.spineItem,
+          offsetMilliseconds = new_playhead.position.offsetMilliseconds)
+      }))
   }
 
   private fun onPlaybackEventPlaybackStarted() {
     this.log.debug("onPlaybackEventPlaybackStarted")
 
     val new_playhead = this.updatePlayheadFromEngine()
-    this.publishPlayingState(new_playhead.spineItem, PLAYING)
 
-    this.event_source.onNext(PlayerEventPlaybackStarted(
-      new_playhead.spineItem,
-      new_playhead.position.offsetMilliseconds))
+    this.eventSource.onNext(
+      synchronized(this.stateLock, {
+        PlayerEventPlaybackStarted(
+          spineElement = new_playhead.spineItem,
+          offsetMilliseconds = new_playhead.position.offsetMilliseconds)
+      }))
+  }
+
+  private fun onPlaybackEventPlaybackPaused() {
+    this.log.debug("onPlaybackEventPlaybackPaused")
+
+    val new_playhead = this.updatePlayheadFromEngine()
+
+    this.eventSource.onNext(
+      synchronized(this.stateLock, {
+        PlayerEventPlaybackPaused(
+          spineElement = new_playhead.spineItem,
+          offsetMilliseconds = new_playhead.position.offsetMilliseconds)
+      }))
+  }
+
+  private fun onPlaybackEventPlaybackStopped() {
+    this.log.debug("onPlaybackEventPlaybackStopped")
+
+    val new_playhead = this.updatePlayheadFromEngine()
+    this.chapterCompleting = false
+
+    this.eventSource.onNext(
+      synchronized(this.stateLock, {
+        PlayerEventPlaybackStopped(
+          spineElement = new_playhead.spineItem,
+          offsetMilliseconds = new_playhead.position.offsetMilliseconds)
+      }))
+  }
+
+  private fun onPlaybackEventPlaybackProgressUpdate() {
+    this.log.debug("onPlaybackEventPlaybackProgressUpdate")
+
+    val new_playhead = this.updatePlayheadFromEngine()
+    this.chapterCompleting = false
+
+    this.eventSource.onNext(
+      synchronized(this.stateLock, {
+        PlayerEventPlaybackProgressUpdate(
+          spineElement = new_playhead.spineItem,
+          offsetMilliseconds = new_playhead.position.offsetMilliseconds)
+      }))
   }
 
   private fun onPlaybackEventChapterCompleted() {
+    this.log.debug("onPlaybackEventChapterCompleted")
 
-    /*
-     * The CHAPTER_PLAYBACK_COMPLETED event will, for some reason, be published at both the end
-     * of the old chapter and the start of the new one. We only want to publish an event once
-     * for the chapter that has just ended, so the condition we use is that the current engine
-     * position must be non-zero (in other words, not at the very start of a chapter), and the
-     * engine must be playing. An event received in other states is ignored.
-     */
-
-    val current_playhead = this.updatePlayheadFromEngine()
-    val was_playing = this.engine.playbackEngine.isPlaying
-    if (current_playhead.position.offsetMilliseconds != 0 && was_playing) {
-
-      /*
-       * Stop playback now. If playback isn't manually stopped, the Findaway player will
-       * automatically move to the next chapter. Unfortunately, if the next chapter hasn't been
-       * downloaded, it will instead be streamed from the remote server. On connections with
-       * limited bandwidth quotas, this is undesirable behaviour. In order to try to force the
-       * playback engine to stop skipping to new chapters, we seek to the start of the current
-       * chapter and pause playback.
-       */
-
-      this.log.debug("onPlaybackEventChapterCompleted: handling chapter playback completion")
-      this.event_source.onNext(PlayerEventChapterCompleted(
-        spineElement = current_playhead.spineItem,
-        offsetMilliseconds = current_playhead.position.offsetMilliseconds))
-
-      this.engineSeek(0L)
-      this.publishPlayingState(current_playhead.spineItem, STOPPED)
-      this.enginePause()
-
-      /*
-       * If the next spine item is available, start playing it.
-       */
-
-      val next_playhead = this.findSpineItemNextIfAvailable(current_playhead.spineItem)
-      if (next_playhead != null) {
-        this.log.debug("onPlaybackEventChapterCompleted: next chapter is available")
-        this.publishPlayingState(next_playhead as PlayerFindawaySpineElement, PLAYING)
-        this.enginePlaySpineElement(next_playhead)
-      } else {
-        this.log.debug("onPlaybackEventChapterCompleted: next chapter not available")
-      }
-
-      this.log.debug("onPlaybackEventChapterCompleted: handled chapter playback completed")
-    } else {
-      this.log.debug(
-        "onPlaybackEventChapterCompleted: ignoring chapter completion (offset {}, was playing {})",
-        current_playhead.position.offsetMilliseconds,
-        was_playing)
+    if (!this.chapterCompleting) {
+      this.eventSource.onNext(
+        synchronized(this.stateLock, {
+          PlayerEventChapterCompleted(
+            spineElement = this.state.spineItem,
+            offsetMilliseconds = this.state.playhead.offsetMilliseconds)
+        }))
     }
+
+    this.chapterCompleting = true
   }
 
   private data class SpineItemAndPosition(
@@ -351,7 +287,7 @@ class PlayerFindaway(
   private fun updatePlayheadFromEngine(): SpineItemAndPosition {
     val chapter = this.engine.playbackEngine.chapter
     if (chapter == null) {
-      return synchronized(this.state.lock, {
+      return synchronized(this.stateLock, {
         SpineItemAndPosition(
           spineItem = this.state.spineItem,
           position = this.state.playhead)
@@ -375,12 +311,12 @@ class PlayerFindaway(
     }
 
     val playing = this.engine.playbackEngine.isPlaying
-    synchronized(this.state.lock, {
+    synchronized(this.stateLock, {
       this.state.playhead = new_playhead
       this.state.isPlaying = playing
     })
 
-    this.log.debug("now at {} (playing: {})", new_playhead, playing)
+    this.log.trace("now at {} (playing: {})", new_playhead, playing)
     return SpineItemAndPosition(
       spineItem = element as PlayerFindawaySpineElement,
       position = new_playhead)
@@ -388,33 +324,39 @@ class PlayerFindaway(
 
   override fun play() {
     this.log.debug("playing")
-
-    this.enginePlay(synchronized(this.state.lock, { this.state.playhead }))
+    this.enginePlay(kotlin.synchronized(this.stateLock, { this.state.playhead }))
   }
 
   override fun pause() {
     this.log.debug("pausing")
-
-    this.updatePlayheadFromEngine()
     this.enginePause()
   }
 
   override fun skipForward() {
-    TODO("not implemented")
+    val playhead = this.updatePlayheadFromEngine()
+    this.engine.playbackEngine.seekTo(playhead.position.offsetMilliseconds + 15_000L)
   }
 
   override fun skipBack() {
-    TODO("not implemented")
+    val playhead = this.updatePlayheadFromEngine()
+    this.engine.playbackEngine.seekTo(Math.max(0L, playhead.position.offsetMilliseconds - 15_000L))
+  }
+
+  override fun skipToNextChapter() {
+    this.engine.playbackEngine.nextChapter()
+  }
+
+  override fun skipToPreviousChapter() {
+    this.engine.playbackEngine.previousChapter()
   }
 
   override fun playAtLocation(location: PlayerPosition) {
-    this.movePlayheadToLocation(location)
-    this.play()
+    this.enginePlay(location)
   }
 
   override fun movePlayheadToLocation(location: PlayerPosition) {
     this.enginePlay(location)
-    this.pause()
+    this.enginePause()
   }
 
   override val key: String

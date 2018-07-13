@@ -29,6 +29,18 @@ interface PlayerType {
   fun pause()
 
   /**
+   * Skip to the next chapter.
+   */
+
+  fun skipToNextChapter()
+
+  /**
+   * Skip to the previous chapter.
+   */
+
+  fun skipToPreviousChapter()
+
+  /**
    * Skip forward 15 seconds and start playback
    */
 

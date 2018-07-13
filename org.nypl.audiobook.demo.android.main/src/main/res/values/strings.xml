@@ -21,4 +21,12 @@
   <string name="player_play">Play</string>
   <string name="player_pause">Pause</string>
 
+  <string name="book_delete_confirm">Delete this book part?</string>
+  <string name="book_delete">Delete</string>
+  <string name="book_delete_keep">Keep</string>
+
+  <string name="book_download_stop_confirm">Stop downloading this book part?</string>
+  <string name="book_download_stop">Stop</string>
+  <string name="book_download_continue">Continue</string>
+
 </resources>

@@ -58,6 +58,7 @@ dependencies {
   implementation group: 'joda-time', name: 'joda-time', version: '2.9.9'
   implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.9.5'
   implementation group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
+  implementation 'com.github.stephenc.jcip:jcip-annotations:1.0-1'
 
   implementation 'com.github.tony19:logback-android-core:1.1.1-6'
   implementation('com.github.tony19:logback-android-classic:1.1.1-6') {

@@ -19,7 +19,7 @@ interface PlayerAudioBookType {
     part: Int,
     chapter: Int): PlayerSpineElementType?
 
-  val spineElementStatusUpdates: Observable<PlayerSpineElementStatus>
+  val spineElementDownloadStatus : Observable<PlayerSpineElementDownloadStatus>
 
   val player: PlayerType
 

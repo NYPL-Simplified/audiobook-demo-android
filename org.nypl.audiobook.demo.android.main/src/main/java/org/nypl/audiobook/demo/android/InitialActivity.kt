@@ -7,7 +7,7 @@ import android.widget.Button
 import android.widget.EditText
 import org.nypl.audiobook.demo.android.main.R
 import org.slf4j.LoggerFactory
-import java.util.*
+import java.util.Properties
 
 /**
  * A trivial activity that allows the user to specify various parameters required for downloading

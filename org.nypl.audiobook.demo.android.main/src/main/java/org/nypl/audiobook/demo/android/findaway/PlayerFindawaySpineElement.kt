@@ -1,9 +1,12 @@
 package org.nypl.audiobook.demo.android.findaway
 
 import io.audioengine.mobile.AudioEngine
+import org.joda.time.Duration
+import org.nypl.audiobook.demo.android.api.PlayerAudioBookType
 import org.nypl.audiobook.demo.android.api.PlayerDownloadTaskType
 import org.nypl.audiobook.demo.android.api.PlayerPosition
-import org.nypl.audiobook.demo.android.api.PlayerSpineElementStatus
+import org.nypl.audiobook.demo.android.api.PlayerSpineElementDownloadStatus
+import org.nypl.audiobook.demo.android.api.PlayerSpineElementDownloadStatus.PlayerSpineElementNotDownloaded
 import org.nypl.audiobook.demo.android.api.PlayerSpineElementType
 import rx.subjects.PublishSubject
 
@@ -13,16 +16,20 @@ import rx.subjects.PublishSubject
 
 class PlayerFindawaySpineElement(
   private val engine: AudioEngine,
-  private val statusEvents: PublishSubject<PlayerSpineElementStatus>,
+  private val downloadStatusEvents: PublishSubject<PlayerSpineElementDownloadStatus>,
   val bookManifest: PlayerFindawayManifest,
   val itemManifest: PlayerFindawayManifest.PlayerFindawayManifestSpineItem,
   override val index: Int,
-  internal var nextElement: PlayerSpineElementType?)
+  internal var nextElement: PlayerSpineElementType?,
+  override val duration: Duration)
   : PlayerSpineElementType {
 
+  override val book: PlayerAudioBookType
+    get() = this.bookActual
+
   private val statusLock: Any = Object()
-  private var statusNow: PlayerSpineElementStatus =
-    PlayerSpineElementStatus.PlayerSpineElementInitial
+  private var statusNow: PlayerSpineElementDownloadStatus = PlayerSpineElementNotDownloaded
+  private lateinit var bookActual: PlayerFindawayAudioBook
 
   override val next: PlayerSpineElementType?
     get() = this.nextElement
@@ -43,12 +50,16 @@ class PlayerFindawaySpineElement(
       manifest = this.bookManifest,
       spineElement = this)
 
-  fun setStatus(status: PlayerSpineElementStatus) {
-    synchronized(this.statusLock, { this.statusNow = status })
-    this.statusEvents.onNext(status)
+  fun setBook(book: PlayerFindawayAudioBook) {
+    this.bookActual = book
   }
 
-  override val status: PlayerSpineElementStatus
+  fun setDownloadStatus(status: PlayerSpineElementDownloadStatus) {
+    synchronized(this.statusLock, { this.statusNow = status })
+    this.downloadStatusEvents.onNext(status)
+  }
+
+  override val downloadStatus: PlayerSpineElementDownloadStatus
     get() = synchronized(this.statusLock, { this.statusNow })
 
   override val id: String

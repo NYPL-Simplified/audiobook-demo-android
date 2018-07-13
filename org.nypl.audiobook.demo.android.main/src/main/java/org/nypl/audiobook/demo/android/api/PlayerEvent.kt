@@ -12,6 +12,16 @@ sealed class PlayerEvent {
     : PlayerEvent()
 
   /**
+   * Playback is currently buffering for the given spine element. This can happen at any time
+   * during playback if the given spine item has not been downloaded.
+   */
+
+  data class PlayerEventPlaybackBuffering(
+    val spineElement: PlayerSpineElementType,
+    val offsetMilliseconds: Int)
+    : PlayerEvent()
+
+  /**
    * The given spine item is playing, and this event is a progress update indicating how far
    * along playback is.
    */
@@ -32,12 +42,12 @@ sealed class PlayerEvent {
     : PlayerEvent()
 
   /**
-   * Playback could not continue to the given spine element because the spine element has not
-   * been downloaded. Playback is about to stop.
+   * Playback of the given spine element has paused.
    */
 
-  data class PlayerEventUnavailableForPlayback(
-    val spineElement: PlayerSpineElementType)
+  data class PlayerEventPlaybackPaused(
+    val spineElement: PlayerSpineElementType,
+    val offsetMilliseconds: Int)
     : PlayerEvent()
 
   /**

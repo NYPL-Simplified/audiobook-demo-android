@@ -53,12 +53,32 @@
     android:layout_height="wrap_content"
     android:text="»" />
 
-  <SeekBar
+  <TextView
+    android:id="@+id/player_time"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_marginLeft="16dp"
+    android:layout_above="@+id/player_play"
+    android:text="00:00:00" />
+
+  <TextView
+    android:id="@+id/player_time_maximum"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_alignParentRight="true"
+    android:layout_marginRight="16dp"
+    android:layout_above="@+id/player_play"
+    android:text="00:00:00" />
+
+  <ProgressBar
     android:id="@+id/player_seek_bar"
+    style="?android:attr/progressBarStyleHorizontal"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginLeft="16dp"
     android:layout_marginRight="16dp"
+    android:layout_toLeftOf="@+id/player_time_maximum"
+    android:layout_toRightOf="@+id/player_time"
     android:layout_above="@+id/player_play" />
 
 </RelativeLayout>

@@ -1,10 +1,14 @@
 package org.nypl.audiobook.demo.android.api
 
+import org.joda.time.Duration
+
 /**
  * A spine item.
  */
 
 interface PlayerSpineElementType {
+
+  val book: PlayerAudioBookType
 
   /**
    * The index of the spine item within the spine.
@@ -22,13 +26,19 @@ interface PlayerSpineElementType {
 
   val next : PlayerSpineElementType?
 
+  /**
+   * The length of the spine item.
+   */
+
+  val duration : Duration
+
   val id: String
 
   val title: String
 
   val position: PlayerPosition
 
-  val status: PlayerSpineElementStatus
+  val downloadStatus: PlayerSpineElementDownloadStatus
 
   val downloadTask: PlayerDownloadTaskType
 }
