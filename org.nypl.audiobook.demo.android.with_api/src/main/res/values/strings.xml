@@ -2,7 +2,7 @@
 
 <resources>
 
-  <string name="app_name">NYPLAudioBookDemo</string>
+  <string name="app_name">NYPLEngineProviderDemo</string>
 
   <string name="field_user_name">Username</string>
   <string name="field_password">Password</string>
