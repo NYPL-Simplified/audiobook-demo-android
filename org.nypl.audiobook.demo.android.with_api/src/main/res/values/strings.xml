@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<resources>
+
+  <string name="app_name">NYPLAudioBookDemo</string>
+
+  <string name="field_user_name">Username</string>
+  <string name="field_password">Password</string>
+  <string name="field_borrow_uri">Borrow URI</string>
+
+  <string name="fetch_requesting_manifest">Requesting manifest…</string>
+  <string name="fetch_processing_manifest">Processing manifest…</string>
+  <string name="fetch_received_other_manifest">Received manifest.</string>
+  <string name="fetch_received_findaway_manifest">Received Findaway manifest.</string>
+
+  <string name="player_toc_entry_download">Download</string>
+  <string name="player_toc_entry_dismiss">Dismiss</string>
+  <string name="player_toc_entry_cancel">Cancel</string>
+  <string name="player_toc_entry_delete">Delete</string>
+
+  <string name="player_play">Play</string>
+  <string name="player_pause">Pause</string>
+
+  <string name="book_delete_confirm">Delete this book part?</string>
+  <string name="book_delete">Delete</string>
+  <string name="book_delete_keep">Keep</string>
+
+  <string name="book_download_stop_confirm">Stop downloading this book part?</string>
+  <string name="book_download_stop">Stop</string>
+  <string name="book_download_continue">Continue</string>
+
+</resources>

@@ -1,0 +1,67 @@
+apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
+
+/*
+ * Copy some properties from the local.properties file into a properties file used to populate
+ * various fields in the application.
+ */
+
+task generatePropertiesResources {
+  def local_props_file = new File(project.rootProject.projectDir, "local.properties")
+  def local_props = new Properties()
+
+  local_props.load(new FileInputStream(local_props_file))
+
+  def user_name = local_props.get("feed.user_name")
+  def password = local_props.get("feed.password")
+  def borrow_uri = local_props.get("feed.borrow_uri")
+
+  if (user_name == null) {
+    throw new IllegalArgumentException("Please specify feed.user_name in local.properties")
+  }
+  if (password == null) {
+    throw new IllegalArgumentException("Please specify feed.password in local.properties")
+  }
+  if (borrow_uri == null) {
+    throw new IllegalArgumentException("Please specify feed.borrow_uri in local.properties")
+  }
+
+  def directory = new File(project.projectDir, "src/main/assets").absoluteFile
+  directory.mkdirs()
+  def file = new File(directory, "app.properties")
+  file.createNewFile()
+
+  def properties = new Properties()
+  properties.setProperty("feed.user_name", user_name)
+  properties.setProperty("feed.password", password)
+  properties.setProperty("feed.borrow_uri", borrow_uri)
+  properties.store(new FileOutputStream(file), "Automatically generated - DO NOT EDIT")
+}
+
+preBuild.dependsOn generatePropertiesResources
+
+android {
+  compileSdkVersion 27
+  buildToolsVersion "27.0.3"
+
+  packagingOptions {
+
+  }
+}
+
+dependencies {
+  implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+
+  implementation "org.nypl.audiobook:org.nypl.audiobook.android.api:0.0.2"
+  implementation "org.nypl.audiobook:org.nypl.audiobook.android.open_access:0.0.2"
+  implementation "org.nypl.audiobook:org.nypl.audiobook.android.audioengine.core:0.0.2"
+
+  implementation 'org.slf4j:slf4j-api:1.7.25'
+  implementation 'com.github.stephenc.jcip:jcip-annotations:1.0-1'
+
+  implementation 'com.github.tony19:logback-android-core:1.1.1-6'
+  implementation('com.github.tony19:logback-android-classic:1.1.1-6') {
+    // https://github.com/tony19/logback-android/issues/73
+    exclude group: 'com.google.android', module: 'android'
+  }
+}

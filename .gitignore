@@ -1,6 +1,6 @@
 *.iml
 .gradle
 .idea
+app.properties
 build
 local.properties
-org.nypl.audiobook.demo.android.main/src/main/assets/app.properties
