@@ -23,7 +23,7 @@
     android:icon="@drawable/icon">
 
     <activity
-      android:name="org.nypl.audiobook.demo.android.with_api.ExampleActivity"
+      android:name=".InitialActivity"
       android:configChanges="orientation|keyboardHidden|screenSize"
       android:exported="true">
 
@@ -32,6 +32,11 @@
         <category android:name="android.intent.category.LAUNCHER" />
       </intent-filter>
     </activity>
+
+    <activity
+      android:name=".PlayerActivity"
+      android:configChanges="orientation|keyboardHidden|screenSize" />
+
   </application>
 
 </manifest>

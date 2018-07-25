@@ -36,7 +36,7 @@ class ExampleActivity : Activity() {
         this.providers_text.setText("None! Something is wrong.")
       } else {
         val text = StringBuilder(64)
-        providers.forEach({ provider ->
+        providers.forEach { provider ->
           text.append(provider.name())
           text.append(':')
           text.append(provider.version().major)
@@ -45,7 +45,7 @@ class ExampleActivity : Activity() {
           text.append('.')
           text.append(provider.version().patch)
           text.append('\n')
-        })
+        }
         this.providers_text.setText(text.toString())
       }
     } catch (e: Exception) {

@@ -50,17 +50,20 @@ android {
 }
 
 dependencies {
+  annotationProcessor "com.google.auto.value:auto-value:1.3"
+
   implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
 
-  implementation "org.nypl.audiobook:org.nypl.audiobook.android.api:0.0.2"
-  implementation "org.nypl.audiobook:org.nypl.audiobook.android.open_access:0.0.2"
-  implementation "org.nypl.audiobook:org.nypl.audiobook.android.audioengine.core:0.0.2"
+  implementation "org.nypl.audiobook:org.nypl.audiobook.android.manifest.nypl:${nypl_audiobook_api_version}"
+  implementation "org.nypl.audiobook:org.nypl.audiobook.android.api:${nypl_audiobook_api_version}"
+  implementation "org.nypl.audiobook:org.nypl.audiobook.android.audioengine.core:${nypl_audiobook_api_version}"
+  implementation "org.nypl.audiobook:org.nypl.audiobook.android.open_access:${nypl_audiobook_api_version}"
 
-  implementation 'org.slf4j:slf4j-api:1.7.25'
-  implementation 'com.github.stephenc.jcip:jcip-annotations:1.0-1'
+  implementation "org.slf4j:slf4j-api:${dependency_slf4j_version}"
+  implementation "com.github.stephenc.jcip:jcip-annotations:${dependency_jcip_version}"
 
-  implementation 'com.github.tony19:logback-android-core:1.1.1-6'
-  implementation('com.github.tony19:logback-android-classic:1.1.1-6') {
+  implementation "com.github.tony19:logback-android-core:${dependency_logback_android_version}"
+  implementation("com.github.tony19:logback-android-classic:${dependency_logback_android_version}") {
     // https://github.com/tony19/logback-android/issues/73
     exclude group: 'com.google.android', module: 'android'
   }

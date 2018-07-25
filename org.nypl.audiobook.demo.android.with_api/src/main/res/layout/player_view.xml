@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+  android:id="@+id/player_view"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent">
+
+  <TextView
+    android:id="@+id/player_title"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_margin="16dp"
+    android:text="Book Title"
+    android:textAppearance="@android:style/TextAppearance.Medium" />
+
+  <ListView
+    android:id="@+id/player_toc"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layout_above="@+id/player_play"
+    android:layout_marginLeft="16dp"
+    android:layout_marginRight="16dp"
+    android:layout_marginBottom="32dp"
+    android:layout_marginTop="52dp"
+    android:layout_centerHorizontal="true">
+
+  </ListView>
+
+  <Button
+    android:id="@+id/player_play"
+    android:layout_alignParentBottom="true"
+    android:layout_centerHorizontal="true"
+    android:layout_margin="16dp"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:text="Play" />
+
+  <Button
+    android:id="@+id/player_skip_backward"
+    android:layout_alignParentBottom="true"
+    android:layout_margin="16dp"
+    android:layout_toLeftOf="@id/player_play"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:text="«" />
+
+  <Button
+    android:id="@+id/player_skip_forward"
+    android:layout_alignParentBottom="true"
+    android:layout_margin="16dp"
+    android:layout_toRightOf="@id/player_play"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:text="»" />
+
+  <TextView
+    android:id="@+id/player_time"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_marginLeft="16dp"
+    android:layout_above="@+id/player_play"
+    android:text="00:00:00" />
+
+  <TextView
+    android:id="@+id/player_time_maximum"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_alignParentRight="true"
+    android:layout_marginRight="16dp"
+    android:layout_above="@+id/player_play"
+    android:text="00:00:00" />
+
+  <ProgressBar
+    android:id="@+id/player_seek_bar"
+    style="?android:attr/progressBarStyleHorizontal"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginLeft="16dp"
+    android:layout_marginRight="16dp"
+    android:layout_toLeftOf="@+id/player_time_maximum"
+    android:layout_toRightOf="@+id/player_time"
+    android:layout_above="@+id/player_play" />
+
+</RelativeLayout>
