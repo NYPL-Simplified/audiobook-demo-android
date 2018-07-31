@@ -19,6 +19,8 @@ import android.widget.ImageView
 import android.widget.ListView
 import android.widget.ProgressBar
 import android.widget.TextView
+import com.google.common.util.concurrent.ListeningExecutorService
+import com.google.common.util.concurrent.MoreExecutors
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.Credentials
@@ -29,6 +31,7 @@ import org.joda.time.Duration
 import org.joda.time.format.PeriodFormatter
 import org.joda.time.format.PeriodFormatterBuilder
 import org.nypl.audiobook.android.api.PlayerAudioBookType
+import org.nypl.audiobook.android.api.PlayerAudioEngineRequest
 import org.nypl.audiobook.android.api.PlayerAudioEngines
 import org.nypl.audiobook.android.api.PlayerEvent
 import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventChapterCompleted
@@ -55,6 +58,8 @@ import org.nypl.audiobook.demo.android.with_api.PlayerActivity.PlayerState.Playe
 import org.slf4j.LoggerFactory
 import rx.Subscription
 import java.io.IOException
+import java.util.concurrent.Executors
+import java.util.concurrent.ThreadFactory
 import java.util.concurrent.TimeUnit
 
 /**
@@ -151,6 +156,8 @@ class PlayerActivity : Activity() {
   private var spineElementSubscription: Subscription? = null
   private var playerEventSubscription: Subscription? = null
 
+  private lateinit var downloadExecutor: ListeningExecutorService
+
   override fun onCreate(state: Bundle?) {
     super.onCreate(state)
 
@@ -159,6 +166,19 @@ class PlayerActivity : Activity() {
     synchronized(this.stateLock, {
       this.state = PlayerStateWaitingForManifest(this.getString(R.string.fetch_requesting_manifest))
     })
+
+    /*
+     * Create an executor for download threads. Each thread is assigned a useful name
+     * for correct blame assignment during debugging.
+     */
+
+    this.downloadExecutor =
+      MoreExecutors.listeningDecorator(
+        Executors.newFixedThreadPool(4, { r: Runnable? ->
+          val thread = Thread(r)
+          thread.name = "org.nypl.audiobook.demo.android.with_api.downloader-${thread.id}"
+          thread
+        }))
 
     this.fetchView =
       this.layoutInflater.inflate(R.layout.fetch_view, null)
@@ -320,7 +340,12 @@ class PlayerActivity : Activity() {
      * Ask the API for the best audio engine available that can handle the given manifest.
      */
 
-    val engine = PlayerAudioEngines.findBestFor(manifest, { true })
+    val engine = PlayerAudioEngines.findBestFor(
+      PlayerAudioEngineRequest(
+        manifest = manifest,
+        filter = { true },
+        downloadProvider = ExampleDownloadProvider(this.downloadExecutor)))
+
     if (engine == null) {
       ErrorDialogUtilities.showErrorWithRunnable(
         this@PlayerActivity,
@@ -349,7 +374,7 @@ class PlayerActivity : Activity() {
     val book = (book_result as PlayerResult.Success).result
 
     /*
-     * Subscribe to spine element downloadStatus updates.
+     * Subscribe to spine element status updates.
      */
 
     this.spineElementSubscription = book.spineElementDownloadStatus.subscribe(
@@ -371,7 +396,7 @@ class PlayerActivity : Activity() {
     this.log.debug("onProcessManifest: finished")
 
     /*
-     * The book has been opened, downloadStatus updates have been issued for all of the parts. Now
+     * The book has been opened, status updates have been issued for all of the parts. Now
      * tell the UI that everything has been updated.
      */
 
@@ -565,21 +590,21 @@ class PlayerActivity : Activity() {
       : PlayerSpineElementPlayingStatus()
 
     data class PlayerSpineElementPlaying(
-      val element : PlayerSpineElementType)
+      val element: PlayerSpineElementType)
       : PlayerSpineElementPlayingStatus()
 
     data class PlayerSpineElementBuffering(
-      val element : PlayerSpineElementType)
+      val element: PlayerSpineElementType)
       : PlayerSpineElementPlayingStatus()
 
     data class PlayerSpineElementPaused(
-      val element : PlayerSpineElementType)
+      val element: PlayerSpineElementType)
       : PlayerSpineElementPlayingStatus()
 
   }
 
   /**
-   * A reconfigurable view that shows the downloadStatus of a spine element.
+   * A reconfigurable view that shows the status of a spine element.
    */
 
   private class PlayerSpineElementView(
@@ -769,7 +794,7 @@ class PlayerActivity : Activity() {
          */
 
         this.playerToc.choiceMode = AbsListView.CHOICE_MODE_SINGLE
-        this.playerToc.onItemClickListener = object: AdapterView.OnItemClickListener{
+        this.playerToc.onItemClickListener = object : AdapterView.OnItemClickListener {
           private var lastPosition = -1
           private var lastTime = 0L
 
