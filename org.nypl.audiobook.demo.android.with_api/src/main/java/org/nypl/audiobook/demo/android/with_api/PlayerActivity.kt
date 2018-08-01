@@ -55,11 +55,11 @@ import org.nypl.audiobook.demo.android.with_api.PlayerActivity.PlayerState.Playe
 import org.nypl.audiobook.demo.android.with_api.PlayerActivity.PlayerState.PlayerStateReceivedManifest
 import org.nypl.audiobook.demo.android.with_api.PlayerActivity.PlayerState.PlayerStateReceivedResponse
 import org.nypl.audiobook.demo.android.with_api.PlayerActivity.PlayerState.PlayerStateWaitingForManifest
+import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import rx.Subscription
 import java.io.IOException
 import java.util.concurrent.Executors
-import java.util.concurrent.ThreadFactory
 import java.util.concurrent.TimeUnit
 
 /**
@@ -554,6 +554,7 @@ class PlayerActivity : Activity() {
    */
 
   private class PlayerSpineElementArrayAdapter(
+    private val log: Logger,
     private val context: Activity,
     private val items: List<PlayerSpineElementType>)
     : ArrayAdapter<PlayerSpineElementType>(context, R.layout.player_toc_entry, items) {
@@ -564,7 +565,8 @@ class PlayerActivity : Activity() {
       parent: ViewGroup): View {
 
       val item = this.items.get(position)
-      val view = reuse as PlayerSpineElementView? ?: PlayerSpineElementView(this.context, null)
+      val view = reuse as PlayerSpineElementView?
+        ?: PlayerSpineElementView(this.log, this.context, null)
       view.viewConfigure(
         item = item,
         selected = position == this.itemSelected,
@@ -608,6 +610,7 @@ class PlayerActivity : Activity() {
    */
 
   private class PlayerSpineElementView(
+    private val log: Logger,
     val context: Activity,
     attrs: AttributeSet?) : FrameLayout(context, attrs) {
 
@@ -657,7 +660,7 @@ class PlayerActivity : Activity() {
       this.viewGroupPlayStatus.visibility = View.INVISIBLE
 
       when (item.downloadStatus) {
-        PlayerSpineElementNotDownloaded -> {
+        is PlayerSpineElementNotDownloaded -> {
           this.viewGroupDownloadStatus.setImageResource(R.drawable.empty)
           this.viewGroupOperation.setImageResource(R.drawable.download)
           this.viewGroupOperation.setOnClickListener({ item.downloadTask.fetch() })
@@ -669,7 +672,7 @@ class PlayerActivity : Activity() {
           this.viewGroupOperation.setOnClickListener({ this.showDownloadCancelConfirm(item) })
         }
 
-        PlayerSpineElementDownloaded -> {
+        is PlayerSpineElementDownloaded -> {
           this.viewGroupDownloadStatus.setImageResource(R.drawable.book)
           this.viewGroupOperation.setImageResource(R.drawable.delete)
           this.viewGroupOperation.setOnClickListener({ this.showDeleteConfirm(item) })
@@ -726,6 +729,8 @@ class PlayerActivity : Activity() {
     }
 
     private fun showDeleteConfirm(item: PlayerSpineElementType) {
+      this.log.debug("asking for part deletion confirmation")
+
       val dialog =
         AlertDialog.Builder(this.context)
           .setCancelable(true)
@@ -741,6 +746,8 @@ class PlayerActivity : Activity() {
     }
 
     private fun showDownloadCancelConfirm(item: PlayerSpineElementType) {
+      this.log.debug("asking for download cancellation confirmation")
+
       val dialog =
         AlertDialog.Builder(this.context)
           .setCancelable(true)
@@ -786,7 +793,7 @@ class PlayerActivity : Activity() {
         this.playerView.visibility = View.VISIBLE
         this.setContentView(this.playerView)
         this.playerTitle.text = state.manifest.metadata.title
-        this.playerTocAdapter = PlayerSpineElementArrayAdapter(this, state.book.spine)
+        this.playerTocAdapter = PlayerSpineElementArrayAdapter(this.log, this, state.book.spine)
         this.playerToc.adapter = this.playerTocAdapter
 
         /*

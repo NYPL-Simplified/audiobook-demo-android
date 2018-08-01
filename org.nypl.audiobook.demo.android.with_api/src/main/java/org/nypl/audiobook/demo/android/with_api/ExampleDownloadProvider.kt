@@ -14,7 +14,6 @@ import org.slf4j.LoggerFactory
 import java.io.FileOutputStream
 import java.io.IOException
 import java.io.InputStream
-import java.util.concurrent.Callable
 import java.util.concurrent.CancellationException
 import java.util.concurrent.TimeUnit
 
@@ -33,10 +32,12 @@ class ExampleDownloadProvider(
 
     this.reportProgress(request, 0)
 
-    this.executor.submit(Callable<Unit> {
+    this.executor.submit({
       try {
         doDownload(request, result)
         result.set(Unit)
+      } catch (e: CancellationException) {
+        doCleanUp(request)
       } catch (e: Throwable) {
         result.setException(e)
         doCleanUp(request)
@@ -203,7 +204,6 @@ class ExampleDownloadProvider(
         progressPrevious = progressCurrent
         this.log.debug("download progress: {}", progressCurrent)
       }
-
 
       this.reportProgress(request, progressCurrent.toInt())
     }
