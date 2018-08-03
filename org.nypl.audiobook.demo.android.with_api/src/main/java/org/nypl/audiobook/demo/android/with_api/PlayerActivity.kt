@@ -35,6 +35,7 @@ import org.nypl.audiobook.android.api.PlayerAudioEngineRequest
 import org.nypl.audiobook.android.api.PlayerAudioEngines
 import org.nypl.audiobook.android.api.PlayerEvent
 import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventChapterCompleted
+import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventChapterWaiting
 import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventPlaybackBuffering
 import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventPlaybackPaused
 import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventPlaybackProgressUpdate
@@ -411,13 +412,29 @@ class PlayerActivity : Activity() {
     this.log.debug("onPlayerEvent: {}", event)
 
     return when (event) {
-      is PlayerEventPlaybackStarted -> this.onPlayerEventPlaybackStarted(event)
-      is PlayerEventPlaybackProgressUpdate -> this.onPlayerEventProgressUpdate(event)
       is PlayerEventChapterCompleted -> this.onPlayerEventChapterCompleted(event)
-      is PlayerEventPlaybackStopped -> this.onPlayerEventPlaybackStopped(event)
-      is PlayerEventPlaybackPaused -> this.onPlayerEventPlaybackPaused(event)
+      is PlayerEventChapterWaiting -> this.onPlayerEventChapterWaiting(event)
       is PlayerEventPlaybackBuffering -> this.onPlayerEventPlaybackBuffering(event)
+      is PlayerEventPlaybackPaused -> this.onPlayerEventPlaybackPaused(event)
+      is PlayerEventPlaybackProgressUpdate -> this.onPlayerEventProgressUpdate(event)
+      is PlayerEventPlaybackStarted -> this.onPlayerEventPlaybackStarted(event)
+      is PlayerEventPlaybackStopped -> this.onPlayerEventPlaybackStopped(event)
     }
+  }
+
+  private fun onPlayerEventChapterWaiting(event: PlayerEventChapterWaiting) {
+    this.log.debug("onPlayerEventChapterWaiting")
+
+    /*
+     * XXX: Not sure what the UI should display here. For now, it just acts as if the track
+     * is playing, but it obviously isn't.
+     */
+
+    UIThread.runOnUIThread(Runnable {
+      this.playerTocAdapter.setItemPlayingStatus(PlayerSpineElementPlaying(event.spineElement))
+      this.onConfigurePlayerControls(event.spineElement, 0, playing = true)
+      this.onSpineElementStatusChanged()
+    })
   }
 
   private fun onPlayerEventPlaybackBuffering(event: PlayerEvent.PlayerEventPlaybackBuffering) {
