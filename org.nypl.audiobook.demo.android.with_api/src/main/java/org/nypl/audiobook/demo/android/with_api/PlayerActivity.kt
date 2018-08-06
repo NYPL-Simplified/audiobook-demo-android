@@ -240,14 +240,8 @@ class PlayerActivity : Activity() {
     this.log.debug("onDestroy")
     super.onDestroy()
 
-    val spineSub = this.spineElementSubscription
-    if (spineSub != null) {
-      spineSub.unsubscribe()
-    }
-    val playerSub = this.playerEventSubscription
-    if (playerSub != null) {
-      playerSub.unsubscribe()
-    }
+    this.spineElementSubscription?.unsubscribe()
+    this.playerEventSubscription?.unsubscribe()
 
     /*
      * Close the player if it is open.
@@ -381,18 +375,18 @@ class PlayerActivity : Activity() {
      * Create the audio book.
      */
 
-    val book_result = engine.bookProvider.create(this)
-    if (book_result is PlayerResult.Failure) {
+    val bookResult = engine.bookProvider.create(this)
+    if (bookResult is PlayerResult.Failure) {
       ErrorDialogUtilities.showErrorWithRunnable(
         this@PlayerActivity,
         this.log,
         "Error parsing manifest",
-        book_result.failure,
+        bookResult.failure,
         this.GO_BACK_TO_INITIAL_ACTIVITY)
       return
     }
 
-    val book = (book_result as PlayerResult.Success).result
+    val book = (bookResult as PlayerResult.Success).result
 
     /*
      * Subscribe to spine element status updates.
@@ -851,20 +845,20 @@ class PlayerActivity : Activity() {
             position: Int,
             id: Long) {
 
-            val time_now = SystemClock.elapsedRealtime()
-            val time_diff = time_now - this.lastTime
+            val timeNow = SystemClock.elapsedRealtime()
+            val timeDelta = timeNow - this.lastTime
 
             this@PlayerActivity.log.debug(
-              "clicked: {} at {} (diff {})", position, time_now, time_diff)
+              "clicked: {} at {} (diff {})", position, timeNow, timeDelta)
 
-            if (position == this.lastPosition && time_diff < 250L) {
+            if (position == this.lastPosition && timeDelta < 250L) {
               val item = state.book.spine[position]
               this@PlayerActivity.log.debug("clicked: triggering item {}", item.index)
               state.player.playAtLocation(item.position)
             }
 
             this.lastPosition = position
-            this.lastTime = time_now
+            this.lastTime = timeNow
             this@PlayerActivity.onSpineElementStatusChanged()
           }
         }
