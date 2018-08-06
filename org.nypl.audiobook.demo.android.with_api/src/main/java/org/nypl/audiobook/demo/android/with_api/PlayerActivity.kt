@@ -143,6 +143,8 @@ class PlayerActivity : Activity() {
   private lateinit var playerPlay: Button
   private lateinit var playerSkipBackward: Button
   private lateinit var playerSkipForward: Button
+  private lateinit var playerSkipPrevious: Button
+  private lateinit var playerSkipNext: Button
   private lateinit var playerToc: ListView
   private lateinit var playerTitle: TextView
   private lateinit var playerTime: TextView
@@ -197,6 +199,10 @@ class PlayerActivity : Activity() {
       this.playerView.findViewById(R.id.player_skip_backward)
     this.playerSkipForward =
       this.playerView.findViewById(R.id.player_skip_forward)
+    this.playerSkipPrevious =
+      this.playerView.findViewById(R.id.player_skip_previous)
+    this.playerSkipNext =
+      this.playerView.findViewById(R.id.player_skip_next)
     this.playerToc =
       this.playerView.findViewById(R.id.player_toc)
     this.playerTitle =
@@ -847,10 +853,18 @@ class PlayerActivity : Activity() {
         }
 
         this.playerSkipForward.setOnClickListener({
-          state.book.player.skipToNextChapter()
+          state.book.player.skipForward()
         })
 
         this.playerSkipBackward.setOnClickListener({
+          state.book.player.skipBack()
+        })
+
+        this.playerSkipNext.setOnClickListener({
+          state.book.player.skipToNextChapter()
+        })
+
+        this.playerSkipPrevious.setOnClickListener({
           state.book.player.skipToPreviousChapter()
         })
 

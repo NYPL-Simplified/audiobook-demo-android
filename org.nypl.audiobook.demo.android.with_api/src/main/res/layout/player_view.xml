@@ -30,7 +30,8 @@
     android:id="@+id/player_play"
     android:layout_alignParentBottom="true"
     android:layout_centerHorizontal="true"
-    android:layout_margin="16dp"
+    android:layout_marginTop="16dp"
+    android:layout_marginBottom="16dp"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:text="Play" />
@@ -38,20 +39,42 @@
   <Button
     android:id="@+id/player_skip_backward"
     android:layout_alignParentBottom="true"
-    android:layout_margin="16dp"
     android:layout_toLeftOf="@id/player_play"
-    android:layout_width="wrap_content"
+    android:layout_marginTop="16dp"
+    android:layout_marginBottom="16dp"
+    android:layout_width="32dp"
     android:layout_height="wrap_content"
     android:text="«" />
 
   <Button
+    android:id="@+id/player_skip_previous"
+    android:layout_alignParentBottom="true"
+    android:layout_toLeftOf="@id/player_skip_backward"
+    android:layout_marginTop="16dp"
+    android:layout_marginBottom="16dp"
+    android:layout_width="48dp"
+    android:layout_height="wrap_content"
+    android:text="←" />
+
+  <Button
     android:id="@+id/player_skip_forward"
     android:layout_alignParentBottom="true"
-    android:layout_margin="16dp"
     android:layout_toRightOf="@id/player_play"
-    android:layout_width="wrap_content"
+    android:layout_marginTop="16dp"
+    android:layout_marginBottom="16dp"
+    android:layout_width="32dp"
     android:layout_height="wrap_content"
     android:text="»" />
+
+  <Button
+    android:id="@+id/player_skip_next"
+    android:layout_alignParentBottom="true"
+    android:layout_toRightOf="@id/player_skip_forward"
+    android:layout_marginTop="16dp"
+    android:layout_marginBottom="16dp"
+    android:layout_width="48dp"
+    android:layout_height="wrap_content"
+    android:text="→" />
 
   <TextView
     android:id="@+id/player_time"
