@@ -48,6 +48,7 @@ import org.nypl.audiobook.android.api.PlayerSpineElementDownloadStatus
 import org.nypl.audiobook.android.api.PlayerSpineElementDownloadStatus.PlayerSpineElementDownloaded
 import org.nypl.audiobook.android.api.PlayerSpineElementDownloadStatus.PlayerSpineElementNotDownloaded
 import org.nypl.audiobook.android.api.PlayerSpineElementType
+import org.nypl.audiobook.android.api.PlayerType
 import org.nypl.audiobook.demo.android.with_api.PlayerActivity.PlayerSpineElementPlayingStatus.PlayerSpineElementBuffering
 import org.nypl.audiobook.demo.android.with_api.PlayerActivity.PlayerSpineElementPlayingStatus.PlayerSpineElementNotPlaying
 import org.nypl.audiobook.demo.android.with_api.PlayerActivity.PlayerSpineElementPlayingStatus.PlayerSpineElementPaused
@@ -121,7 +122,8 @@ class PlayerActivity : Activity() {
 
     data class PlayerStateConfigured(
       val manifest: PlayerManifest,
-      val book: PlayerAudioBookType) : PlayerState()
+      val book: PlayerAudioBookType,
+      val player: PlayerType) : PlayerState()
   }
 
   private val periodFormatter: PeriodFormatter =
@@ -245,6 +247,18 @@ class PlayerActivity : Activity() {
     val playerSub = this.playerEventSubscription
     if (playerSub != null) {
       playerSub.unsubscribe()
+    }
+
+    /*
+     * Close the player if it is open.
+     */
+
+    val currentState = this.state
+    when (currentState) {
+      is PlayerStateWaitingForManifest,
+      is PlayerStateReceivedResponse,
+      is PlayerStateReceivedManifest -> Unit
+      is PlayerStateConfigured -> currentState.player.close()
     }
   }
 
@@ -387,7 +401,10 @@ class PlayerActivity : Activity() {
     this.spineElementSubscription = book.spineElementDownloadStatus.subscribe(
       { _ -> this.onSpineElementStatusChanged() },
       { error -> this.onSpineElementStatusError(error!!) })
-    this.playerEventSubscription = book.player.events.subscribe(
+
+    val player = book.createPlayer()
+
+    this.playerEventSubscription = player.events.subscribe(
       { event -> this.onPlayerEvent(event) },
       { error -> this.onPlayerError(error) })
 
@@ -396,7 +413,7 @@ class PlayerActivity : Activity() {
      */
 
     UIThread.runOnUIThread(Runnable {
-      this.state = PlayerStateConfigured(manifest, book)
+      this.state = PlayerStateConfigured(manifest, book, player)
       this.configurePlayerViewFromState(this.state)
     })
 
@@ -843,7 +860,7 @@ class PlayerActivity : Activity() {
             if (position == this.lastPosition && time_diff < 250L) {
               val item = state.book.spine[position]
               this@PlayerActivity.log.debug("clicked: triggering item {}", item.index)
-              state.book.player.playAtLocation(item.position)
+              state.player.playAtLocation(item.position)
             }
 
             this.lastPosition = position
@@ -853,23 +870,23 @@ class PlayerActivity : Activity() {
         }
 
         this.playerSkipForward.setOnClickListener({
-          state.book.player.skipForward()
+          state.player.skipForward()
         })
 
         this.playerSkipBackward.setOnClickListener({
-          state.book.player.skipBack()
+          state.player.skipBack()
         })
 
         this.playerSkipNext.setOnClickListener({
-          state.book.player.skipToNextChapter()
+          state.player.skipToNextChapter()
         })
 
         this.playerSkipPrevious.setOnClickListener({
-          state.book.player.skipToPreviousChapter()
+          state.player.skipToPreviousChapter()
         })
 
         this.playerPlay.setOnClickListener({
-          val player = state.book.player
+          val player = state.player
           if (player.isPlaying) {
             player.pause()
           } else {
@@ -877,7 +894,7 @@ class PlayerActivity : Activity() {
           }
         })
 
-        state.book.player.events.subscribe(
+        state.player.events.subscribe(
           { event -> this.onPlayerEvent(event!!) },
           { error -> this.onPlayerError(error!!) })
       }
