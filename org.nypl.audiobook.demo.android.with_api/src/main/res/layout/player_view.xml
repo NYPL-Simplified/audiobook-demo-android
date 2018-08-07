@@ -42,7 +42,7 @@
     android:layout_toLeftOf="@id/player_play"
     android:layout_marginTop="16dp"
     android:layout_marginBottom="16dp"
-    android:layout_width="32dp"
+    android:layout_width="48dp"
     android:layout_height="wrap_content"
     android:text="«" />
 
@@ -62,7 +62,7 @@
     android:layout_toRightOf="@id/player_play"
     android:layout_marginTop="16dp"
     android:layout_marginBottom="16dp"
-    android:layout_width="32dp"
+    android:layout_width="48dp"
     android:layout_height="wrap_content"
     android:text="»" />
 
@@ -75,6 +75,26 @@
     android:layout_width="48dp"
     android:layout_height="wrap_content"
     android:text="→" />
+
+  <Button
+    android:id="@+id/player_speed_up"
+    android:layout_alignParentBottom="true"
+    android:layout_toRightOf="@id/player_skip_next"
+    android:layout_marginTop="16dp"
+    android:layout_marginBottom="16dp"
+    android:layout_width="48dp"
+    android:layout_height="wrap_content"
+    android:text="+S" />
+
+  <Button
+    android:id="@+id/player_speed_down"
+    android:layout_alignParentBottom="true"
+    android:layout_toLeftOf="@id/player_skip_previous"
+    android:layout_marginTop="16dp"
+    android:layout_marginBottom="16dp"
+    android:layout_width="48dp"
+    android:layout_height="wrap_content"
+    android:text="-S" />
 
   <TextView
     android:id="@+id/player_time"

@@ -147,6 +147,8 @@ class PlayerActivity : Activity() {
   private lateinit var playerSkipForward: Button
   private lateinit var playerSkipPrevious: Button
   private lateinit var playerSkipNext: Button
+  private lateinit var playerSpeedUp: Button
+  private lateinit var playerSpeedDown: Button
   private lateinit var playerToc: ListView
   private lateinit var playerTitle: TextView
   private lateinit var playerTime: TextView
@@ -205,6 +207,12 @@ class PlayerActivity : Activity() {
       this.playerView.findViewById(R.id.player_skip_previous)
     this.playerSkipNext =
       this.playerView.findViewById(R.id.player_skip_next)
+
+    this.playerSpeedUp =
+      this.playerView.findViewById(R.id.player_speed_up)
+    this.playerSpeedDown =
+      this.playerView.findViewById(R.id.player_speed_down)
+
     this.playerToc =
       this.playerView.findViewById(R.id.player_toc)
     this.playerTitle =
@@ -877,6 +885,14 @@ class PlayerActivity : Activity() {
 
         this.playerSkipPrevious.setOnClickListener({
           state.player.skipToPreviousChapter()
+        })
+
+        this.playerSpeedDown.setOnClickListener({
+          state.player.playbackRate = state.player.playbackRate.decrease()
+        })
+
+        this.playerSpeedUp.setOnClickListener({
+          state.player.playbackRate = state.player.playbackRate.increase()
         })
 
         this.playerPlay.setOnClickListener({
