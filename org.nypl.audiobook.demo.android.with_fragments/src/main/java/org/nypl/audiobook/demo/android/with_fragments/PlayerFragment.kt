@@ -35,7 +35,13 @@ class PlayerFragment : android.support.v4.app.Fragment() {
 
   companion object {
     @JvmStatic
-    fun newInstance(): PlayerFragment = PlayerFragment()
+    fun newInstance(parameters: PlayerFragmentParameters): PlayerFragment {
+      val args = Bundle()
+      args.putSerializable("org.nypl.audiobook.demo.android.with_fragments.parameters", parameters)
+      val fragment = PlayerFragment()
+      fragment.arguments = args
+      return fragment
+    }
   }
 
   private lateinit var listener: PlayerFragmentListenerType
@@ -50,6 +56,7 @@ class PlayerFragment : android.support.v4.app.Fragment() {
   private lateinit var menuPlaybackRate: MenuItem
   private lateinit var menuSleep: MenuItem
   private lateinit var menuTOC: MenuItem
+  private lateinit var parameters: PlayerFragmentParameters
 
   private var playerEventSubscription: Subscription? = null
   private val log = LoggerFactory.getLogger(PlayerFragment::class.java)
@@ -69,6 +76,10 @@ class PlayerFragment : android.support.v4.app.Fragment() {
     this.log.debug("onCreate")
 
     super.onCreate(state)
+
+    this.parameters =
+      this.arguments!!.getSerializable("org.nypl.audiobook.demo.android.with_fragments.parameters")
+        as PlayerFragmentParameters
 
     /*
      * This fragment wants an options menu.
@@ -122,8 +133,7 @@ class PlayerFragment : android.support.v4.app.Fragment() {
   }
 
   private fun onMenuTOCSelected(): Boolean {
-    val dialogFragment = PlayerTOCFragment.newInstance()
-    dialogFragment.show(this.fragmentManager, "TOC")
+    this.listener.onPlayerWantsTOC()
     return true
   }
 

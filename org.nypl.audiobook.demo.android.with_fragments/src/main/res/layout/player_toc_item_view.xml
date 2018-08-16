@@ -1,16 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+  android:background="@color/audiobook_player_toc_spine_element_bg_normal"
   android:layout_width="match_parent"
-  android:layout_height="48dp">
+  android:layout_height="64dp">
 
   <ImageView
-    android:id="@+id/player_toc_item_view_border"
+    android:id="@+id/player_toc_item_view_separator"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
+    android:layout_height="1dp"
+    android:layout_alignParentBottom="true"
+    android:layout_centerHorizontal="true"
     android:focusable="false"
     android:clickable="false"
-    android:src="@drawable/player_toc_item_border" />
+    android:src="@drawable/player_toc_item_separator" />
 
   <TextView
     android:id="@+id/player_toc_item_view_title"
@@ -20,16 +23,17 @@
     android:layout_marginLeft="16dp"
     android:layout_marginRight="144dp"
     android:ellipsize="end"
+    android:textColor="@color/audiobook_player_toc_spine_element_fg_normal"
     android:text="Placeholder"
     android:textSize="18sp" />
 
+  <!--
   <RelativeLayout
     android:id="@+id/player_toc_item_view_progress"
     android:layout_width="48dp"
     android:layout_height="48dp"
     android:layout_alignParentRight="true"
-    android:layout_centerVertical="true"
-    android:layout_marginRight="8dp">
+    android:layout_centerVertical="true">
 
     <ProgressBar
       android:id="@+id/player_toc_item_view_progress_indicator"
@@ -43,10 +47,33 @@
       android:layout_width="wrap_content"
       android:layout_height="wrap_content"
       android:layout_centerInParent="true"
+      android:textColor="@color/audiobook_player_toc_spine_element_fg_normal"
       android:text="100"
       android:textStyle="bold"
       android:textSize="10sp" />
   </RelativeLayout>
+  -->
+
+  <org.nypl.audiobook.demo.android.with_fragments.PlayerCircularProgressView
+    android:id="@+id/player_toc_item_view_progress"
+    android:layout_width="32dp"
+    android:layout_height="32dp"
+    android:layout_alignParentRight="true"
+    android:layout_centerVertical="true"
+    android:layout_marginRight="16dp"
+    android:clickable="true"
+    android:focusable="true" />
+
+  <TextView
+    android:id="@+id/player_toc_item_view_duration"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_centerVertical="true"
+    android:layout_marginRight="16dp"
+    android:layout_toLeftOf="@id/player_toc_item_view_progress"
+    android:textColor="@color/audiobook_player_toc_spine_element_fg_normal"
+    android:text="00:00"
+    android:textSize="18sp" />
 
   <ImageView
     android:id="@+id/player_toc_item_view_operation"
@@ -59,14 +86,12 @@
     android:focusable="true"
     android:src="@drawable/download" />
 
-  <TextView
-    android:id="@+id/player_toc_item_view_duration"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:layout_centerVertical="true"
-    android:layout_marginRight="16dp"
-    android:layout_toLeftOf="@+id/player_toc_item_view_progress"
-    android:text="00:00"
-    android:textSize="18sp" />
+  <ImageView
+    android:id="@+id/player_toc_item_view_border"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:focusable="false"
+    android:clickable="false"
+    android:src="@drawable/player_toc_item_border" />
 
 </RelativeLayout>

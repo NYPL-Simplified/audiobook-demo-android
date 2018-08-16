@@ -52,6 +52,7 @@ class PlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
   override fun onCreate(state: Bundle?) {
     super.onCreate(state)
     this.setContentView(R.layout.player_activity)
+    this.actionBar.setTitle(R.string.player_title)
 
     /*
      * Create an executor for download threads. Each thread is assigned a useful name
@@ -62,7 +63,7 @@ class PlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
       MoreExecutors.listeningDecorator(
         Executors.newFixedThreadPool(4, { r: Runnable? ->
           val thread = Thread(r)
-          thread.name = "org.nypl.audiobook.demo.android.with_api.downloader-${thread.id}"
+          thread.name = "org.nypl.audiobook.demo.android.with_fragments.downloader-${thread.id}"
           thread
         }))
 
@@ -146,7 +147,7 @@ class PlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
     this.log.debug("onURIFetchSuccess: {}", response)
 
     UIThread.runOnUIThread(Runnable {
-      this.playerFetchingFragment.setTextId(R.string.fetch_processing_manifest)
+      this.playerFetchingFragment.setMessageTextId(R.string.fetch_processing_manifest)
     })
 
     /*
@@ -223,7 +224,7 @@ class PlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
     this.player = book.createPlayer()
 
     UIThread.runOnUIThread(Runnable {
-      this.playerFragment = PlayerFragment.newInstance()
+      this.playerFragment = PlayerFragment.newInstance(PlayerFragmentParameters())
 
       this.supportFragmentManager
         .beginTransaction()
@@ -233,18 +234,43 @@ class PlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
   }
 
   override fun onPlayerWantsPlayer(): PlayerType {
+    this.log.debug("onPlayerWantsPlayer")
     return this.player
   }
 
   override fun onPlayerWantsCoverImage(view: ImageView) {
-
+    this.log.debug("onPlayerWantsCoverImage: {}", view)
   }
 
   override fun onPlayerTOCWantsBook(): PlayerAudioBookType {
+    this.log.debug("onPlayerTOCWantsBook")
     return this.book
   }
 
   override fun onPlayerTOCListInteraction(item: PlayerSpineElementType) {
     this.log.debug("onPlayerTOCListInteraction: {}", item.index)
+  }
+
+  override fun onPlayerWantsTOC() {
+    this.log.debug("onPlayerWantsTOC")
+
+    UIThread.runOnUIThread(Runnable {
+      this.actionBar.setTitle(R.string.player_toc_title)
+
+      val playerTOCFragment =
+        PlayerTOCFragment.newInstance(PlayerFragmentParameters())
+
+      this.supportFragmentManager
+        .beginTransaction()
+        .replace(R.id.player_fragment_holder, playerTOCFragment, "PLAYER_TOC")
+        .addToBackStack(null)
+        .commit()
+    })
+  }
+
+  override fun onPlayerTOCClosed() {
+    this.log.debug("onPlayerTOCClosed")
+
+    this.actionBar.setTitle(R.string.player_title)
   }
 }

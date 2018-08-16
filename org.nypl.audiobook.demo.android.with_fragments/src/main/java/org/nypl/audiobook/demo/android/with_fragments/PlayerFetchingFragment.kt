@@ -42,7 +42,7 @@ class PlayerFetchingFragment : Fragment() {
     }
   }
 
-  fun setTextId(textId: Int) {
+  fun setMessageTextId(textId: Int) {
     this.fetchText.setText(textId)
   }
 }

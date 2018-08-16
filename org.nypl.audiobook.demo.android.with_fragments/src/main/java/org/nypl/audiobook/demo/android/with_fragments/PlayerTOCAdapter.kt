@@ -10,7 +10,6 @@ import android.view.View.INVISIBLE
 import android.view.View.VISIBLE
 import android.view.ViewGroup
 import android.widget.ImageView
-import android.widget.ProgressBar
 import android.widget.TextView
 import org.joda.time.format.PeriodFormatter
 import org.joda.time.format.PeriodFormatterBuilder
@@ -56,6 +55,7 @@ class PlayerTOCAdapter(
     val view =
       LayoutInflater.from(parent.context)
         .inflate(R.layout.player_toc_item_view, parent, false)
+
     return this.ViewHolder(view)
   }
 
@@ -73,43 +73,68 @@ class PlayerTOCAdapter(
     val status = item.downloadStatus
     when (status) {
       is PlayerSpineElementNotDownloaded -> {
+        if (!item.book.supportsStreaming) {
+          holder.view.setBackgroundColor(holder.backgroundDisabled)
+          holder.durationText.setTextColor(holder.textColorDisabled)
+          holder.titleText.setTextColor(holder.textColorDisabled)
+        } else {
+          holder.view.setBackgroundColor(holder.backgroundColorNormal)
+          holder.durationText.setTextColor(holder.textColorNormal)
+          holder.titleText.setTextColor(holder.textColorNormal)
+        }
+
         holder.operationButton.visibility = VISIBLE
         holder.operationButton.setImageResource(R.drawable.download)
         holder.operationButton.setOnClickListener({ item.downloadTask.fetch() })
 
         holder.downloadProgress.setOnClickListener({ })
         holder.downloadProgress.visibility = INVISIBLE
-        holder.downloadProgressText.visibility = INVISIBLE
+        holder.downloadProgress.progress = 0.0f
       }
 
       is PlayerSpineElementDownloading -> {
+        if (!item.book.supportsStreaming) {
+          holder.view.setBackgroundColor(holder.backgroundDisabled)
+          holder.durationText.setTextColor(holder.textColorDisabled)
+          holder.titleText.setTextColor(holder.textColorDisabled)
+        } else {
+          holder.view.setBackgroundColor(holder.backgroundColorNormal)
+          holder.durationText.setTextColor(holder.textColorNormal)
+          holder.titleText.setTextColor(holder.textColorNormal)
+        }
+
         holder.operationButton.visibility = INVISIBLE
         holder.operationButton.setOnClickListener({ })
 
         holder.downloadProgress.setOnClickListener({ this.onConfirmCancelDownloading(item) })
         holder.downloadProgress.visibility = VISIBLE
-        holder.downloadProgressText.visibility = VISIBLE
-        holder.downloadProgressText.text = status.percent.toString()
+        holder.downloadProgress.progress = status.percent.toFloat() * 0.01f
       }
 
       is PlayerSpineElementDownloaded -> {
+        holder.view.setBackgroundColor(holder.backgroundColorNormal)
+        holder.durationText.setTextColor(holder.textColorNormal)
+        holder.titleText.setTextColor(holder.textColorNormal)
+
         holder.operationButton.visibility = VISIBLE
         holder.operationButton.setImageResource(R.drawable.trash)
         holder.operationButton.setOnClickListener({ this.onConfirmDelete(item) })
 
         holder.downloadProgress.setOnClickListener({ })
         holder.downloadProgress.visibility = INVISIBLE
-        holder.downloadProgressText.visibility = INVISIBLE
       }
 
       is PlayerSpineElementDownloadFailed -> {
+        holder.view.setBackgroundColor(holder.backgroundColorNormal)
+        holder.durationText.setTextColor(holder.textColorNormal)
+        holder.titleText.setTextColor(holder.textColorNormal)
+
         holder.operationButton.visibility = VISIBLE
         holder.operationButton.setImageResource(R.drawable.error)
         holder.operationButton.setOnClickListener({ item.downloadTask.delete() })
 
         holder.downloadProgress.setOnClickListener({ })
         holder.downloadProgress.visibility = INVISIBLE
-        holder.downloadProgressText.visibility = INVISIBLE
       }
     }
 
@@ -169,16 +194,24 @@ class PlayerTOCAdapter(
   }
 
   inner class ViewHolder(val view: View) : RecyclerView.ViewHolder(view) {
+    val textColorNormal =
+      view.resources.getColor(R.color.audiobook_player_toc_spine_element_fg_normal)
+    val textColorDisabled =
+      view.resources.getColor(R.color.audiobook_player_toc_spine_element_fg_disabled)
+
+    val backgroundColorNormal =
+      view.resources.getColor(R.color.audiobook_player_toc_spine_element_bg_normal)
+    val backgroundDisabled =
+      view.resources.getColor(R.color.audiobook_player_toc_spine_element_bg_disabled)
+
     val titleText: TextView =
       this.view.findViewById(R.id.player_toc_item_view_title)
     val border: ImageView =
       this.view.findViewById(R.id.player_toc_item_view_border)
     val durationText: TextView =
       this.view.findViewById(R.id.player_toc_item_view_duration)
-    val downloadProgress: ProgressBar =
-      this.view.findViewById(R.id.player_toc_item_view_progress_indicator)
-    val downloadProgressText: TextView =
-      this.view.findViewById(R.id.player_toc_item_view_progress_text)
+    val downloadProgress: PlayerCircularProgressView =
+      this.view.findViewById(R.id.player_toc_item_view_progress)
     val operationButton: ImageView =
       this.view.findViewById(R.id.player_toc_item_view_operation)
   }

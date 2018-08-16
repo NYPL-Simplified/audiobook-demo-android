@@ -39,6 +39,10 @@
   <string name="player_menu_playback_rate_title">Playback Rate</string>
   <string name="player_menu_sleep_title">Sleep</string>
   <string name="player_menu_toc_title">Contents</string>
+
+  <string name="player_toc_title">Table Of Contents</string>
+  <string name="player_title">Audio Book Player</string>
+
   <string name="player_spine_element">Chapter %1$d of %2$d</string>
 
 </resources>

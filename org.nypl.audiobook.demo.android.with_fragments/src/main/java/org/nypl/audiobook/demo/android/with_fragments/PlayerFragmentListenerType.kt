@@ -11,8 +11,11 @@ interface PlayerFragmentListenerType {
 
   fun onPlayerWantsCoverImage(view: ImageView)
 
+  fun onPlayerWantsTOC()
+
   fun onPlayerTOCWantsBook(): PlayerAudioBookType
 
   fun onPlayerTOCListInteraction(item: PlayerSpineElementType)
 
+  fun onPlayerTOCClosed()
 }
