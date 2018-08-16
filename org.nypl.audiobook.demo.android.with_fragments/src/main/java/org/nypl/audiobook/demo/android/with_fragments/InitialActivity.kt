@@ -5,8 +5,6 @@ import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
-import org.nypl.audiobook.demo.android.with_fragments.PlayerCredentials
-import org.nypl.audiobook.demo.android.with_fragments.PlayerParameters
 import org.slf4j.LoggerFactory
 import java.util.Properties
 

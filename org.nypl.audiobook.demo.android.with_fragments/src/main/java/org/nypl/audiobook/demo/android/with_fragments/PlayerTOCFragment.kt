@@ -11,6 +11,11 @@ import android.view.ViewGroup
 import org.nypl.audiobook.android.api.PlayerAudioBookType
 import org.nypl.audiobook.android.api.PlayerEvent
 import org.nypl.audiobook.android.api.PlayerSpineElementDownloadStatus
+import org.nypl.audiobook.android.api.PlayerSpineElementDownloadStatus.PlayerSpineElementDownloadFailed
+import org.nypl.audiobook.android.api.PlayerSpineElementDownloadStatus.PlayerSpineElementDownloaded
+import org.nypl.audiobook.android.api.PlayerSpineElementDownloadStatus.PlayerSpineElementDownloading
+import org.nypl.audiobook.android.api.PlayerSpineElementDownloadStatus.PlayerSpineElementNotDownloaded
+import org.nypl.audiobook.android.api.PlayerSpineElementType
 import org.nypl.audiobook.android.api.PlayerType
 import org.slf4j.LoggerFactory
 import rx.Subscription
@@ -72,7 +77,7 @@ class PlayerTOCFragment : Fragment() {
         PlayerTOCAdapter(
           context = context,
           spineElements = this.book.spine,
-          interactionListener = this.listener)
+          onSelect = { item -> this.onTOCItemSelected(item) })
 
       this.bookSubscription =
         this.book.spineElementDownloadStatus.subscribe(
@@ -98,6 +103,45 @@ class PlayerTOCFragment : Fragment() {
           .append('\n')
           .toString())
     }
+  }
+
+  private fun onTOCItemSelected(item: PlayerSpineElementType) {
+    this.log.debug("onTOCItemSelected: ", item.index)
+
+    return when (item.downloadStatus) {
+      is PlayerSpineElementNotDownloaded ->
+        if (this.book.supportsStreaming) {
+          this.playItemAndClose(item)
+        } else {
+
+        }
+
+      is PlayerSpineElementDownloading ->
+        if (this.book.supportsStreaming) {
+          this.playItemAndClose(item)
+        } else {
+
+        }
+
+      is PlayerSpineElementDownloaded ->
+        this.playItemAndClose(item)
+
+      is PlayerSpineElementDownloadFailed ->
+        if (this.book.supportsStreaming) {
+          this.playItemAndClose(item)
+        } else {
+
+        }
+    }
+  }
+
+  private fun playItemAndClose(item: PlayerSpineElementType) {
+    this.player.playAtLocation(item.position)
+    this.closeTOC()
+  }
+
+  private fun closeTOC() {
+    this.listener.onPlayerTOCWantsClose()
   }
 
   private fun onPlayerError(error: Throwable) {

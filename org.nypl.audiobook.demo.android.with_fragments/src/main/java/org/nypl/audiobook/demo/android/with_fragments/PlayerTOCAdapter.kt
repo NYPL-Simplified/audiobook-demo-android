@@ -22,7 +22,7 @@ import org.nypl.audiobook.android.api.PlayerSpineElementType
 class PlayerTOCAdapter(
   private val context: Context,
   private val spineElements: List<PlayerSpineElementType>,
-  private val interactionListener: PlayerFragmentListenerType)
+  private val onSelect: (PlayerSpineElementType) -> Unit)
   : RecyclerView.Adapter<PlayerTOCAdapter.ViewHolder>() {
 
   private val listener: View.OnClickListener
@@ -40,10 +40,7 @@ class PlayerTOCAdapter(
       .toFormatter()
 
   init {
-    this.listener = View.OnClickListener { v ->
-      val item = v.tag as PlayerSpineElementType
-      this.interactionListener.onPlayerTOCListInteraction(item)
-    }
+    this.listener = View.OnClickListener { v -> this.onSelect(v.tag as PlayerSpineElementType) }
   }
 
   override fun onCreateViewHolder(

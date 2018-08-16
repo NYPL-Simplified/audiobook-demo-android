@@ -18,7 +18,6 @@ import org.nypl.audiobook.android.api.PlayerAudioEngines
 import org.nypl.audiobook.android.api.PlayerManifest
 import org.nypl.audiobook.android.api.PlayerManifests
 import org.nypl.audiobook.android.api.PlayerResult
-import org.nypl.audiobook.android.api.PlayerSpineElementType
 import org.nypl.audiobook.android.api.PlayerType
 import org.slf4j.LoggerFactory
 import java.io.IOException
@@ -47,6 +46,7 @@ class PlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
   private lateinit var downloadExecutor: ListeningExecutorService
   private lateinit var playerFragment: PlayerFragment
   private lateinit var player: PlayerType
+  private var playerInitialized: Boolean = false
   private lateinit var book: PlayerAudioBookType
 
   override fun onCreate(state: Bundle?) {
@@ -89,7 +89,12 @@ class PlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
 
   override fun onDestroy() {
     super.onDestroy()
+
     this.downloadExecutor.shutdown()
+
+    if (this.playerInitialized) {
+      this.player.close()
+    }
   }
 
   /**
@@ -222,6 +227,7 @@ class PlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
 
     this.book = (bookResult as PlayerResult.Success).result
     this.player = book.createPlayer()
+    this.playerInitialized = true
 
     UIThread.runOnUIThread(Runnable {
       this.playerFragment = PlayerFragment.newInstance(PlayerFragmentParameters())
@@ -247,12 +253,8 @@ class PlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
     return this.book
   }
 
-  override fun onPlayerTOCListInteraction(item: PlayerSpineElementType) {
-    this.log.debug("onPlayerTOCListInteraction: {}", item.index)
-  }
-
-  override fun onPlayerWantsTOC() {
-    this.log.debug("onPlayerWantsTOC")
+  override fun onPlayerTOCShouldOpen() {
+    this.log.debug("onPlayerTOCShouldOpen")
 
     UIThread.runOnUIThread(Runnable {
       this.actionBar.setTitle(R.string.player_toc_title)
@@ -266,6 +268,10 @@ class PlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
         .addToBackStack(null)
         .commit()
     })
+  }
+
+  override fun onPlayerTOCWantsClose() {
+    this.supportFragmentManager.popBackStack()
   }
 
   override fun onPlayerTOCClosed() {

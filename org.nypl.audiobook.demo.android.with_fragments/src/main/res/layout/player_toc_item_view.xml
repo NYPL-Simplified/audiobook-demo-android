@@ -3,7 +3,7 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
   android:background="@color/audiobook_player_toc_spine_element_bg_normal"
   android:layout_width="match_parent"
-  android:layout_height="64dp">
+  android:layout_height="80dp">
 
   <ImageView
     android:id="@+id/player_toc_item_view_separator"
@@ -25,39 +25,12 @@
     android:ellipsize="end"
     android:textColor="@color/audiobook_player_toc_spine_element_fg_normal"
     android:text="Placeholder"
-    android:textSize="18sp" />
-
-  <!--
-  <RelativeLayout
-    android:id="@+id/player_toc_item_view_progress"
-    android:layout_width="48dp"
-    android:layout_height="48dp"
-    android:layout_alignParentRight="true"
-    android:layout_centerVertical="true">
-
-    <ProgressBar
-      android:id="@+id/player_toc_item_view_progress_indicator"
-      style="?android:attr/progressBarStyle"
-      android:layout_width="match_parent"
-      android:layout_height="match_parent"
-      android:layout_centerInParent="true" />
-
-    <TextView
-      android:id="@+id/player_toc_item_view_progress_text"
-      android:layout_width="wrap_content"
-      android:layout_height="wrap_content"
-      android:layout_centerInParent="true"
-      android:textColor="@color/audiobook_player_toc_spine_element_fg_normal"
-      android:text="100"
-      android:textStyle="bold"
-      android:textSize="10sp" />
-  </RelativeLayout>
-  -->
+    android:textSize="24sp" />
 
   <org.nypl.audiobook.demo.android.with_fragments.PlayerCircularProgressView
     android:id="@+id/player_toc_item_view_progress"
-    android:layout_width="32dp"
-    android:layout_height="32dp"
+    android:layout_width="48dp"
+    android:layout_height="48dp"
     android:layout_alignParentRight="true"
     android:layout_centerVertical="true"
     android:layout_marginRight="16dp"
@@ -73,12 +46,12 @@
     android:layout_toLeftOf="@id/player_toc_item_view_progress"
     android:textColor="@color/audiobook_player_toc_spine_element_fg_normal"
     android:text="00:00"
-    android:textSize="18sp" />
+    android:textSize="24sp" />
 
   <ImageView
     android:id="@+id/player_toc_item_view_operation"
-    android:layout_width="32dp"
-    android:layout_height="32dp"
+    android:layout_width="48dp"
+    android:layout_height="48dp"
     android:layout_alignParentRight="true"
     android:layout_centerVertical="true"
     android:layout_marginRight="16dp"

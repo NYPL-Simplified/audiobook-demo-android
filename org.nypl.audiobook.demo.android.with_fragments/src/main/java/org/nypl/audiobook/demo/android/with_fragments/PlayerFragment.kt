@@ -58,7 +58,10 @@ class PlayerFragment : android.support.v4.app.Fragment() {
   private lateinit var menuTOC: MenuItem
   private lateinit var parameters: PlayerFragmentParameters
 
+  private var playerEventMostRecent: PlayerEvent? = null
   private var playerEventSubscription: Subscription? = null
+  private var viewsExist = false
+
   private val log = LoggerFactory.getLogger(PlayerFragment::class.java)
 
   private val periodFormatter: PeriodFormatter =
@@ -89,6 +92,7 @@ class PlayerFragment : android.support.v4.app.Fragment() {
   }
 
   override fun onAttach(context: Context) {
+    this.log.debug("onAttach")
     super.onAttach(context)
 
     if (context is PlayerFragmentListenerType) {
@@ -133,7 +137,7 @@ class PlayerFragment : android.support.v4.app.Fragment() {
   }
 
   private fun onMenuTOCSelected(): Boolean {
-    this.listener.onPlayerWantsTOC()
+    this.listener.onPlayerTOCShouldOpen()
     return true
   }
 
@@ -163,8 +167,8 @@ class PlayerFragment : android.support.v4.app.Fragment() {
   }
 
   override fun onDestroy() {
+    this.log.debug("onDestroy")
     super.onDestroy()
-
     this.playerEventSubscription?.unsubscribe()
   }
 
@@ -172,18 +176,25 @@ class PlayerFragment : android.support.v4.app.Fragment() {
     inflater: LayoutInflater,
     container: ViewGroup?,
     state: Bundle?): View? {
+    this.log.debug("onCreateView")
     return inflater.inflate(R.layout.player_view, container, false)
   }
 
+  override fun onDestroyView() {
+    this.log.debug("onDestroyView")
+    super.onDestroyView()
+    this.viewsExist = false
+  }
+
   override fun onViewCreated(view: View, state: Bundle?) {
+    this.log.debug("onViewCreated")
     super.onViewCreated(view, state)
 
+    this.viewsExist = true
     this.coverView = view.findViewById(R.id.player_cover)!!
 
     this.playPauseButton = view.findViewById(R.id.player_play_button)!!
-    this.playPauseButton.setOnClickListener({
-      this.player.play()
-    })
+    this.playPauseButton.setOnClickListener({ this.player.play() })
 
     this.playerPosition = view.findViewById(R.id.player_progress)!!
     this.playerTimeCurrent = view.findViewById(R.id.player_time)!!
@@ -198,6 +209,24 @@ class PlayerFragment : android.support.v4.app.Fragment() {
         { event -> this.onPlayerEvent(event) },
         { error -> this.onPlayerError(error) },
         { this.onPlayerEventsCompleted() })
+
+    /*
+     * The fragment will keep receiving events after the views are destroyed. The subscription
+     * keeps track of the last event received so that the event can be replayed when the views
+     * are recreated (this will happen when the fragment comes back to the foreground after being
+     * on the back stack).
+     *
+     * Replaying the event is necessary because events come at a slow rate (one per second,
+     * typically), and that's ample time for the user to see an out-of-date UI state before the
+     * next event arrives.
+     */
+
+    val event = this.playerEventMostRecent
+    if (event != null) {
+      this.log.debug("replaying event {}", event)
+      this.playerEventMostRecent = null
+      this.onPlayerEvent(event)
+    }
   }
 
   private fun hmsTextFromMilliseconds(milliseconds: Int): String {
@@ -217,6 +246,8 @@ class PlayerFragment : android.support.v4.app.Fragment() {
   }
 
   private fun onPlayerEvent(event: PlayerEvent) {
+    this.playerEventMostRecent = event
+
     return when (event) {
       is PlayerEventPlaybackStarted ->
         this.onPlayerEventPlaybackStarted(event)
@@ -245,13 +276,12 @@ class PlayerFragment : android.support.v4.app.Fragment() {
 
   private fun onPlayerEventPlaybackStopped(event: PlayerEventPlaybackStopped) {
     UIThread.runOnUIThread(Runnable {
-      this.playPauseButton.setImageResource(R.drawable.play_icon)
-      this.playPauseButton.setOnClickListener({
-        this.player.play()
-      })
-
-      this.playerSpineElement.text =
-        this.spineElementText(event.spineElement)
+      if (this.viewsExist) {
+        this.playPauseButton.setImageResource(R.drawable.play_icon)
+        this.playPauseButton.setOnClickListener({ this.player.play() })
+        this.playerSpineElement.text = this.spineElementText(event.spineElement)
+        this.onEventUpdateTimeRelatedUI(event.spineElement, event.offsetMilliseconds)
+      }
     })
   }
 
@@ -264,40 +294,48 @@ class PlayerFragment : android.support.v4.app.Fragment() {
 
   private fun onPlayerEventPlaybackPaused(event: PlayerEventPlaybackPaused) {
     UIThread.runOnUIThread(Runnable {
-      this.playPauseButton.setImageResource(R.drawable.play_icon)
-      this.playPauseButton.setOnClickListener({
-        this.player.play()
-      })
-
-      this.playerSpineElement.text =
-        this.spineElementText(event.spineElement)
+      if (this.viewsExist) {
+        this.playPauseButton.setImageResource(R.drawable.play_icon)
+        this.playPauseButton.setOnClickListener({ this.player.play() })
+        this.playerSpineElement.text = this.spineElementText(event.spineElement)
+        this.onEventUpdateTimeRelatedUI(event.spineElement, event.offsetMilliseconds)
+      }
     })
   }
 
   private fun onPlayerEventPlaybackProgressUpdate(event: PlayerEventPlaybackProgressUpdate) {
     UIThread.runOnUIThread(Runnable {
-      this.playerPosition.max =
-        event.spineElement.duration.standardSeconds.toInt()
-      this.playerPosition.progress =
-        TimeUnit.MILLISECONDS.toSeconds(event.offsetMilliseconds.toLong()).toInt()
-      this.playerTimeMaximum.text =
-        this.hmsTextFromDuration(event.spineElement.duration)
-      this.playerTimeCurrent.text =
-        this.hmsTextFromMilliseconds(event.offsetMilliseconds)
-      this.playerSpineElement.text =
-        this.spineElementText(event.spineElement)
+      if (this.viewsExist) {
+        this.playPauseButton.setImageResource(R.drawable.pause_icon)
+        this.playPauseButton.setOnClickListener({ this.player.pause() })
+        this.onEventUpdateTimeRelatedUI(event.spineElement, event.offsetMilliseconds)
+      }
     })
   }
 
   private fun onPlayerEventPlaybackStarted(event: PlayerEventPlaybackStarted) {
     UIThread.runOnUIThread(Runnable {
-      this.playPauseButton.setImageResource(R.drawable.pause_icon)
-      this.playPauseButton.setOnClickListener({
-        this.player.pause()
-      })
-
-      this.playerSpineElement.text =
-        this.spineElementText(event.spineElement)
+      if (this.viewsExist) {
+        this.playPauseButton.setImageResource(R.drawable.pause_icon)
+        this.playPauseButton.setOnClickListener({ this.player.pause() })
+        this.playerSpineElement.text = this.spineElementText(event.spineElement)
+        this.onEventUpdateTimeRelatedUI(event.spineElement, event.offsetMilliseconds)
+      }
     })
+  }
+
+  private fun onEventUpdateTimeRelatedUI(
+    spineElement: PlayerSpineElementType,
+    offsetMilliseconds: Int) {
+    this.playerPosition.max =
+      spineElement.duration.standardSeconds.toInt()
+    this.playerPosition.progress =
+      TimeUnit.MILLISECONDS.toSeconds(offsetMilliseconds.toLong()).toInt()
+    this.playerTimeMaximum.text =
+      this.hmsTextFromDuration(spineElement.duration)
+    this.playerTimeCurrent.text =
+      this.hmsTextFromMilliseconds(offsetMilliseconds)
+    this.playerSpineElement.text =
+      this.spineElementText(spineElement)
   }
 }
