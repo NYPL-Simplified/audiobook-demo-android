@@ -1,7 +1,6 @@
 package org.nypl.audiobook.demo.android.with_fragments
 
 import android.app.AlertDialog
-import android.app.Fragment
 import android.content.Context
 import android.content.DialogInterface
 import android.os.Bundle
@@ -17,6 +16,7 @@ import android.widget.TextView
 import org.joda.time.Duration
 import org.joda.time.format.PeriodFormatter
 import org.joda.time.format.PeriodFormatterBuilder
+import org.nypl.audiobook.android.api.PlayerAudioBookType
 import org.nypl.audiobook.android.api.PlayerEvent
 import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventChapterCompleted
 import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventChapterWaiting
@@ -25,12 +25,13 @@ import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventPlaybackPaused
 import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventPlaybackProgressUpdate
 import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventPlaybackStarted
 import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventPlaybackStopped
+import org.nypl.audiobook.android.api.PlayerSpineElementType
 import org.nypl.audiobook.android.api.PlayerType
 import org.slf4j.LoggerFactory
 import rx.Subscription
 import java.util.concurrent.TimeUnit
 
-class PlayerFragment : Fragment() {
+class PlayerFragment : android.support.v4.app.Fragment() {
 
   companion object {
     @JvmStatic
@@ -39,14 +40,17 @@ class PlayerFragment : Fragment() {
 
   private lateinit var listener: PlayerFragmentListenerType
   private lateinit var player: PlayerType
+  private lateinit var book: PlayerAudioBookType
   private lateinit var coverView: ImageView
   private lateinit var playPauseButton: ImageView
   private lateinit var playerPosition: ProgressBar
   private lateinit var playerTimeCurrent: TextView
   private lateinit var playerTimeMaximum: TextView
+  private lateinit var playerSpineElement: TextView
   private lateinit var menuPlaybackRate: MenuItem
   private lateinit var menuSleep: MenuItem
   private lateinit var menuTOC: MenuItem
+
   private var playerEventSubscription: Subscription? = null
   private val log = LoggerFactory.getLogger(PlayerFragment::class.java)
 
@@ -73,18 +77,19 @@ class PlayerFragment : Fragment() {
     this.setHasOptionsMenu(true)
   }
 
-  override fun onAttach(context: Context?) {
+  override fun onAttach(context: Context) {
     super.onAttach(context)
 
     if (context is PlayerFragmentListenerType) {
       this.listener = context
       this.player = this.listener.onPlayerWantsPlayer()
+      this.book = this.listener.onPlayerTOCWantsBook()
     } else {
       throw ClassCastException(
         StringBuilder(64)
           .append("The activity hosting this fragment must implement one or more listener interfaces.\n")
           .append("  Activity: ")
-          .append(this.activity::class.java.canonicalName)
+          .append(context::class.java.canonicalName)
           .append('\n')
           .append("  Required interface: ")
           .append(PlayerFragmentListenerType::class.java.canonicalName)
@@ -117,15 +122,8 @@ class PlayerFragment : Fragment() {
   }
 
   private fun onMenuTOCSelected(): Boolean {
-    val dialog =
-      AlertDialog.Builder(this.activity)
-        .setCancelable(true)
-        .setMessage("Not yet implemented!")
-        .setNegativeButton(
-          "OK",
-          { _: DialogInterface, _: Int -> })
-        .create()
-    dialog.show()
+    val dialogFragment = PlayerTOCFragment.newInstance()
+    dialogFragment.show(this.fragmentManager, "TOC")
     return true
   }
 
@@ -161,10 +159,10 @@ class PlayerFragment : Fragment() {
   }
 
   override fun onCreateView(
-    inflater: LayoutInflater?,
+    inflater: LayoutInflater,
     container: ViewGroup?,
     state: Bundle?): View? {
-    return inflater?.inflate(R.layout.player_view, container, false)
+    return inflater.inflate(R.layout.player_view, container, false)
   }
 
   override fun onViewCreated(view: View, state: Bundle?) {
@@ -180,6 +178,8 @@ class PlayerFragment : Fragment() {
     this.playerPosition = view.findViewById(R.id.player_progress)!!
     this.playerTimeCurrent = view.findViewById(R.id.player_time)!!
     this.playerTimeMaximum = view.findViewById(R.id.player_time_maximum)!!
+    this.playerSpineElement = view.findViewById(R.id.player_spine_element)!!
+    this.playerSpineElement.text = this.spineElementText(this.book.spine.first())
 
     this.listener.onPlayerWantsCoverImage(this.coverView)
 
@@ -239,7 +239,17 @@ class PlayerFragment : Fragment() {
       this.playPauseButton.setOnClickListener({
         this.player.play()
       })
+
+      this.playerSpineElement.text =
+        this.spineElementText(event.spineElement)
     })
+  }
+
+  private fun spineElementText(spineElement: PlayerSpineElementType): String {
+    return this.getString(
+      R.string.player_spine_element,
+      spineElement.index + 1,
+      spineElement.book.spine.size)
   }
 
   private fun onPlayerEventPlaybackPaused(event: PlayerEventPlaybackPaused) {
@@ -248,6 +258,9 @@ class PlayerFragment : Fragment() {
       this.playPauseButton.setOnClickListener({
         this.player.play()
       })
+
+      this.playerSpineElement.text =
+        this.spineElementText(event.spineElement)
     })
   }
 
@@ -261,6 +274,8 @@ class PlayerFragment : Fragment() {
         this.hmsTextFromDuration(event.spineElement.duration)
       this.playerTimeCurrent.text =
         this.hmsTextFromMilliseconds(event.offsetMilliseconds)
+      this.playerSpineElement.text =
+        this.spineElementText(event.spineElement)
     })
   }
 
@@ -270,6 +285,9 @@ class PlayerFragment : Fragment() {
       this.playPauseButton.setOnClickListener({
         this.player.pause()
       })
+
+      this.playerSpineElement.text =
+        this.spineElementText(event.spineElement)
     })
   }
 }

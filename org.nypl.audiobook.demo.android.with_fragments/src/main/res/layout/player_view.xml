@@ -14,7 +14,7 @@
     android:layout_centerHorizontal="true"
     android:layout_marginTop="16dp"
     android:text="A Placeholder Title"
-    android:textSize="18sp"
+    android:textSize="24sp"
     android:textStyle="bold" />
 
   <TextView
@@ -25,7 +25,7 @@
     android:layout_centerHorizontal="true"
     android:layout_marginTop="8dp"
     android:text="An Author"
-    android:textSize="16sp" />
+    android:textSize="18sp" />
 
   <ProgressBar
     android:id="@+id/player_progress"
@@ -35,7 +35,9 @@
     android:layout_below="@id/player_author"
     android:layout_marginLeft="16dp"
     android:layout_marginRight="16dp"
-    android:layout_marginTop="16dp" />
+    android:layout_marginTop="16dp"
+    android:scaleY="3"
+    />
 
   <TextView
     android:id="@+id/player_time"
@@ -46,7 +48,7 @@
     android:layout_marginLeft="16dp"
     android:layout_marginTop="8dp"
     android:text="00:00:00"
-    android:textSize="12sp" />
+    android:textSize="16sp" />
 
   <TextView
     android:id="@+id/player_time_maximum"
@@ -57,18 +59,7 @@
     android:layout_marginRight="16dp"
     android:layout_marginTop="8dp"
     android:text="00:00:00"
-    android:textSize="12sp" />
-
-  <TextView
-    android:id="@+id/player_chapter"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:layout_alignParentLeft="true"
-    android:layout_below="@+id/player_progress"
-    android:layout_marginLeft="16dp"
-    android:layout_marginTop="8dp"
-    android:text="00:00:00"
-    android:textSize="12sp" />
+    android:textSize="16sp" />
 
   <TextView
     android:id="@+id/player_spine_element"
@@ -78,7 +69,7 @@
     android:layout_centerHorizontal="true"
     android:layout_marginTop="8dp"
     android:text="Chapter 0 of 0"
-    android:textSize="12sp"
+    android:textSize="16sp"
     android:textStyle="bold" />
 
   <ImageView
@@ -148,10 +139,12 @@
     android:id="@+id/player_cover"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:layout_centerInParent="true"
     android:layout_below="@id/player_spine_element"
     android:layout_above="@id/player_play_button"
-    android:layout_margin="32dp"
+    android:layout_marginTop="32dp"
+    android:layout_marginBottom="128dp"
+    android:layout_marginLeft="32dp"
+    android:layout_marginRight="32dp"
     android:src="@drawable/icon" />
 
 </RelativeLayout>

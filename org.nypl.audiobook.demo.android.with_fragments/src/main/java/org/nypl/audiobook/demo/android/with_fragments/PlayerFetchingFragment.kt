@@ -1,7 +1,7 @@
 package org.nypl.audiobook.demo.android.with_fragments
 
-import android.app.Fragment
 import android.os.Bundle
+import android.support.v4.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -18,15 +18,15 @@ class PlayerFetchingFragment : Fragment() {
   private lateinit var fetchText: TextView
 
   override fun onCreateView(
-    inflater: LayoutInflater?,
+    inflater: LayoutInflater,
     container: ViewGroup?,
     state: Bundle?): View? {
-    return inflater?.inflate(R.layout.player_fetch_view, container, false)
+    return inflater.inflate(R.layout.player_fetch_view, container, false)
   }
 
-  override fun onViewCreated(view: View?, state: Bundle?) {
+  override fun onViewCreated(view: View, state: Bundle?) {
     super.onViewCreated(view, state)
-    this.fetchText = view?.findViewById(R.id.fetch_text)!!
+    this.fetchText = view.findViewById(R.id.fetch_text)!!
   }
 
   override fun onSaveInstanceState(state: Bundle) {

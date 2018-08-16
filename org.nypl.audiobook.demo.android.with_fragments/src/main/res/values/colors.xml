@@ -2,9 +2,8 @@
 
 <resources>
 
-  <color name="background_playing">#a2efe2</color>
-  <color name="background_neutral">#00000000</color>
-  <color name="background_failed">#ff9090</color>
-  <color name="background_selected">#eeeeee</color>
+  <color name="audiobook_player_toc_spine_element_current_border">#af1a16</color>
+
+  <color name="audiobook_player_progress_color">#af1a16</color>
 
 </resources>

@@ -1,8 +1,8 @@
 package org.nypl.audiobook.demo.android.with_fragments
 
-import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
+import android.support.v4.app.FragmentActivity
 import android.widget.ImageView
 import com.google.common.util.concurrent.ListeningExecutorService
 import com.google.common.util.concurrent.MoreExecutors
@@ -12,17 +12,19 @@ import okhttp3.Credentials
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
+import org.nypl.audiobook.android.api.PlayerAudioBookType
 import org.nypl.audiobook.android.api.PlayerAudioEngineRequest
 import org.nypl.audiobook.android.api.PlayerAudioEngines
 import org.nypl.audiobook.android.api.PlayerManifest
 import org.nypl.audiobook.android.api.PlayerManifests
 import org.nypl.audiobook.android.api.PlayerResult
+import org.nypl.audiobook.android.api.PlayerSpineElementType
 import org.nypl.audiobook.android.api.PlayerType
 import org.slf4j.LoggerFactory
 import java.io.IOException
 import java.util.concurrent.Executors
 
-class PlayerActivity : Activity(), PlayerFragmentListenerType {
+class PlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
 
   private val log = LoggerFactory.getLogger(PlayerActivity::class.java)
 
@@ -45,6 +47,7 @@ class PlayerActivity : Activity(), PlayerFragmentListenerType {
   private lateinit var downloadExecutor: ListeningExecutorService
   private lateinit var playerFragment: PlayerFragment
   private lateinit var player: PlayerType
+  private lateinit var book: PlayerAudioBookType
 
   override fun onCreate(state: Bundle?) {
     super.onCreate(state)
@@ -66,7 +69,7 @@ class PlayerActivity : Activity(), PlayerFragmentListenerType {
     if (state == null) {
       this.playerFetchingFragment = PlayerFetchingFragment.newInstance()
 
-      this.fragmentManager
+      this.supportFragmentManager
         .beginTransaction()
         .replace(R.id.player_fragment_holder, this.playerFetchingFragment, "PLAYER_FETCHING")
         .commit()
@@ -216,13 +219,13 @@ class PlayerActivity : Activity(), PlayerFragmentListenerType {
       return
     }
 
-    val book = (bookResult as PlayerResult.Success).result
+    this.book = (bookResult as PlayerResult.Success).result
     this.player = book.createPlayer()
 
     UIThread.runOnUIThread(Runnable {
       this.playerFragment = PlayerFragment.newInstance()
 
-      this.fragmentManager
+      this.supportFragmentManager
         .beginTransaction()
         .replace(R.id.player_fragment_holder, this.playerFragment, "PLAYER")
         .commit()
@@ -235,5 +238,13 @@ class PlayerActivity : Activity(), PlayerFragmentListenerType {
 
   override fun onPlayerWantsCoverImage(view: ImageView) {
 
+  }
+
+  override fun onPlayerTOCWantsBook(): PlayerAudioBookType {
+    return this.book
+  }
+
+  override fun onPlayerTOCListInteraction(item: PlayerSpineElementType) {
+    this.log.debug("onPlayerTOCListInteraction: {}", item.index)
   }
 }

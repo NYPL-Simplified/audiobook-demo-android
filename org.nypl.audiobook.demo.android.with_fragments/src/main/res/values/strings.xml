@@ -16,7 +16,6 @@
   <string name="fetch_requesting_manifest">Requesting manifest…</string>
   <string name="fetch_processing_manifest">Processing manifest…</string>
   <string name="fetch_received_other_manifest">Received manifest.</string>
-  <string name="fetch_received_findaway_manifest">Received Findaway manifest.</string>
 
   <string name="player_toc_entry_download">Download</string>
   <string name="player_toc_entry_dismiss">Dismiss</string>
@@ -40,5 +39,6 @@
   <string name="player_menu_playback_rate_title">Playback Rate</string>
   <string name="player_menu_sleep_title">Sleep</string>
   <string name="player_menu_toc_title">Contents</string>
+  <string name="player_spine_element">Chapter %1$d of %2$d</string>
 
 </resources>
