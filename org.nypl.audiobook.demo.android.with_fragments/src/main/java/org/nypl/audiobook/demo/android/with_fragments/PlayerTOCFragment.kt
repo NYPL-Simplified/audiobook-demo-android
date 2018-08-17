@@ -149,7 +149,11 @@ class PlayerTOCFragment : Fragment() {
   }
 
   private fun onPlayerEvent(event: PlayerEvent) {
-    this.onPlayerSpineElement(event.spineElement.index)
+    return when (event) {
+      is PlayerEvent.PlayerEventPlaybackRateChanged -> Unit
+      is PlayerEvent.PlayerEventWithSpineElement ->
+        this.onPlayerSpineElement(event.spineElement.index)
+    }
   }
 
   private fun onPlayerSpineElement(index: Int) {

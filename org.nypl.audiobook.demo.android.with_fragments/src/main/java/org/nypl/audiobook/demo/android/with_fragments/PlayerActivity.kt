@@ -259,14 +259,23 @@ class PlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
     UIThread.runOnUIThread(Runnable {
       this.actionBar.setTitle(R.string.player_toc_title)
 
-      val playerTOCFragment =
+      val fragment =
         PlayerTOCFragment.newInstance(PlayerFragmentParameters())
 
       this.supportFragmentManager
         .beginTransaction()
-        .replace(R.id.player_fragment_holder, playerTOCFragment, "PLAYER_TOC")
+        .replace(R.id.player_fragment_holder, fragment, "PLAYER_TOC")
         .addToBackStack(null)
         .commit()
+    })
+  }
+
+  override fun onPlayerPlaybackRateShouldOpen() {
+    this.log.debug("onPlayerPlaybackRateShouldOpen")
+
+    UIThread.runOnUIThread(Runnable {
+      val fragment = PlayerPlaybackRateFragment.newInstance()
+      fragment.show(this.supportFragmentManager, "PLAYER_RATE")
     })
   }
 

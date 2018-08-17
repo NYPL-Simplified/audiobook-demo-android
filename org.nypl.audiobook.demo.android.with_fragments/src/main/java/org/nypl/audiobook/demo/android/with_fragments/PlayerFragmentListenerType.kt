@@ -17,4 +17,6 @@ interface PlayerFragmentListenerType {
   fun onPlayerTOCClosed()
 
   fun onPlayerTOCWantsClose()
+
+  fun onPlayerPlaybackRateShouldOpen()
 }

@@ -18,13 +18,14 @@ import org.joda.time.format.PeriodFormatter
 import org.joda.time.format.PeriodFormatterBuilder
 import org.nypl.audiobook.android.api.PlayerAudioBookType
 import org.nypl.audiobook.android.api.PlayerEvent
-import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventChapterCompleted
-import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventChapterWaiting
-import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventPlaybackBuffering
-import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventPlaybackPaused
-import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventPlaybackProgressUpdate
-import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventPlaybackStarted
-import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventPlaybackStopped
+import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventPlaybackRateChanged
+import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventWithSpineElement.PlayerEventChapterCompleted
+import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventWithSpineElement.PlayerEventChapterWaiting
+import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventWithSpineElement.PlayerEventPlaybackBuffering
+import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventWithSpineElement.PlayerEventPlaybackPaused
+import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventWithSpineElement.PlayerEventPlaybackProgressUpdate
+import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventWithSpineElement.PlayerEventPlaybackStarted
+import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventWithSpineElement.PlayerEventPlaybackStopped
 import org.nypl.audiobook.android.api.PlayerSpineElementType
 import org.nypl.audiobook.android.api.PlayerType
 import org.slf4j.LoggerFactory
@@ -56,6 +57,7 @@ class PlayerFragment : android.support.v4.app.Fragment() {
   private lateinit var playerTimeMaximum: TextView
   private lateinit var playerSpineElement: TextView
   private lateinit var menuPlaybackRate: MenuItem
+  private lateinit var menuPlaybackRateText: TextView
   private lateinit var menuSleep: MenuItem
   private lateinit var menuTOC: MenuItem
   private lateinit var parameters: PlayerFragmentParameters
@@ -125,11 +127,30 @@ class PlayerFragment : android.support.v4.app.Fragment() {
     this.menuPlaybackRate = menu.findItem(R.id.player_menu_playback_rate)
     this.menuPlaybackRate.actionView.setOnClickListener { this.onMenuPlaybackRateSelected() }
 
+    this.menuPlaybackRateText =
+      this.menuPlaybackRate.actionView.findViewById(R.id.player_menu_playback_rate_text)
+    this.menuPlaybackRateText.text =
+      PlayerPlaybackRateAdapter.textOfRate(this.player.playbackRate)
+
     this.menuSleep = menu.findItem(R.id.player_menu_sleep)
     this.menuSleep.setOnMenuItemClickListener { this.onMenuSleepSelected() }
 
     this.menuTOC = menu.findItem(R.id.player_menu_toc)
     this.menuTOC.setOnMenuItemClickListener { this.onMenuTOCSelected() }
+
+    /*
+     * Subscribe to player events. We do the subscription here (as late as possible) so that
+     * all of the views (including the options menu) have been created before the first event
+     * is received.
+     */
+
+    if (this.playerEventSubscription == null) {
+      this.playerEventSubscription =
+        this.player.events.subscribe(
+          { event -> this.onPlayerEvent(event) },
+          { error -> this.onPlayerError(error) },
+          { this.onPlayerEventsCompleted() })
+    }
   }
 
   private fun onMenuTOCSelected(): Boolean {
@@ -151,15 +172,7 @@ class PlayerFragment : android.support.v4.app.Fragment() {
   }
 
   private fun onMenuPlaybackRateSelected() {
-    val dialog =
-      AlertDialog.Builder(this.activity)
-        .setCancelable(true)
-        .setMessage("Not yet implemented!")
-        .setNegativeButton(
-          "OK",
-          { _: DialogInterface, _: Int -> })
-        .create()
-    dialog.show()
+    this.listener.onPlayerPlaybackRateShouldOpen()
   }
 
   override fun onDestroy() {
@@ -205,12 +218,6 @@ class PlayerFragment : android.support.v4.app.Fragment() {
 
     this.listener.onPlayerWantsCoverImage(this.coverView)
 
-    this.playerEventSubscription =
-      this.player.events.subscribe(
-        { event -> this.onPlayerEvent(event) },
-        { error -> this.onPlayerError(error) },
-        { this.onPlayerEventsCompleted() })
-
     /*
      * The fragment will keep receiving events after the views are destroyed. The subscription
      * keeps track of the last event received so that the event can be replayed when the views
@@ -247,6 +254,8 @@ class PlayerFragment : android.support.v4.app.Fragment() {
   }
 
   private fun onPlayerEvent(event: PlayerEvent) {
+    this.log.debug("onPlayerEvent: {}", event)
+
     this.playerEventMostRecent = event
 
     return when (event) {
@@ -272,7 +281,17 @@ class PlayerFragment : android.support.v4.app.Fragment() {
         this.onPlayerEventPlaybackPaused(event)
       is PlayerEventPlaybackStopped ->
         this.onPlayerEventPlaybackStopped(event)
+      is PlayerEventPlaybackRateChanged ->
+        this.onPlayerEventPlaybackRateChanged(event)
     }
+  }
+
+  private fun onPlayerEventPlaybackRateChanged(event: PlayerEventPlaybackRateChanged) {
+    UIThread.runOnUIThread(Runnable {
+      if (this.viewsExist) {
+        this.menuPlaybackRateText.text = PlayerPlaybackRateAdapter.textOfRate(event.rate)
+      }
+    })
   }
 
   private fun onPlayerEventPlaybackStopped(event: PlayerEventPlaybackStopped) {

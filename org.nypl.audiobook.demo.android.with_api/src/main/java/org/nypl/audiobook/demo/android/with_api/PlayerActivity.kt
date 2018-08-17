@@ -34,13 +34,13 @@ import org.nypl.audiobook.android.api.PlayerAudioBookType
 import org.nypl.audiobook.android.api.PlayerAudioEngineRequest
 import org.nypl.audiobook.android.api.PlayerAudioEngines
 import org.nypl.audiobook.android.api.PlayerEvent
-import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventChapterCompleted
-import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventChapterWaiting
-import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventPlaybackBuffering
-import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventPlaybackPaused
-import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventPlaybackProgressUpdate
-import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventPlaybackStarted
-import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventPlaybackStopped
+import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventWithSpineElement.PlayerEventChapterCompleted
+import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventWithSpineElement.PlayerEventChapterWaiting
+import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventWithSpineElement.PlayerEventPlaybackBuffering
+import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventWithSpineElement.PlayerEventPlaybackPaused
+import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventWithSpineElement.PlayerEventPlaybackProgressUpdate
+import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventWithSpineElement.PlayerEventPlaybackStarted
+import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventWithSpineElement.PlayerEventPlaybackStopped
 import org.nypl.audiobook.android.api.PlayerManifest
 import org.nypl.audiobook.android.api.PlayerManifests
 import org.nypl.audiobook.android.api.PlayerResult
@@ -444,6 +444,7 @@ class PlayerActivity : Activity() {
       is PlayerEventPlaybackProgressUpdate -> this.onPlayerEventProgressUpdate(event)
       is PlayerEventPlaybackStarted -> this.onPlayerEventPlaybackStarted(event)
       is PlayerEventPlaybackStopped -> this.onPlayerEventPlaybackStopped(event)
+      is PlayerEvent.PlayerEventPlaybackRateChanged -> { }
     }
   }
 
@@ -462,7 +463,7 @@ class PlayerActivity : Activity() {
     })
   }
 
-  private fun onPlayerEventPlaybackBuffering(event: PlayerEvent.PlayerEventPlaybackBuffering) {
+  private fun onPlayerEventPlaybackBuffering(event: PlayerEventPlaybackBuffering) {
     this.log.debug("onPlayerEventPlaybackBuffering")
 
     UIThread.runOnUIThread(Runnable {
