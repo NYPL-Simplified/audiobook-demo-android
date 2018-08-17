@@ -49,6 +49,8 @@ class PlayerFragment : android.support.v4.app.Fragment() {
   private lateinit var book: PlayerAudioBookType
   private lateinit var coverView: ImageView
   private lateinit var playPauseButton: ImageView
+  private lateinit var playerSkipForwardButton: ImageView
+  private lateinit var playerSkipBackwardButton: ImageView
   private lateinit var playerPosition: ProgressBar
   private lateinit var playerTimeCurrent: TextView
   private lateinit var playerTimeMaximum: TextView
@@ -121,19 +123,13 @@ class PlayerFragment : android.support.v4.app.Fragment() {
     inflater.inflate(R.menu.player_menu, menu)
 
     this.menuPlaybackRate = menu.findItem(R.id.player_menu_playback_rate)
-    this.menuPlaybackRate.actionView.setOnClickListener {
-      this.onMenuPlaybackRateSelected()
-    }
+    this.menuPlaybackRate.actionView.setOnClickListener { this.onMenuPlaybackRateSelected() }
 
     this.menuSleep = menu.findItem(R.id.player_menu_sleep)
-    this.menuSleep.setOnMenuItemClickListener {
-      this.onMenuSleepSelected()
-    }
+    this.menuSleep.setOnMenuItemClickListener { this.onMenuSleepSelected() }
 
     this.menuTOC = menu.findItem(R.id.player_menu_toc)
-    this.menuTOC.setOnMenuItemClickListener {
-      this.onMenuTOCSelected()
-    }
+    this.menuTOC.setOnMenuItemClickListener { this.onMenuTOCSelected() }
   }
 
   private fun onMenuTOCSelected(): Boolean {
@@ -195,6 +191,11 @@ class PlayerFragment : android.support.v4.app.Fragment() {
 
     this.playPauseButton = view.findViewById(R.id.player_play_button)!!
     this.playPauseButton.setOnClickListener({ this.player.play() })
+
+    this.playerSkipForwardButton = view.findViewById(R.id.player_jump_forwards)
+    this.playerSkipForwardButton.setOnClickListener({ this.player.skipForward() })
+    this.playerSkipBackwardButton = view.findViewById(R.id.player_jump_backwards)
+    this.playerSkipBackwardButton.setOnClickListener({ this.player.skipBack() })
 
     this.playerPosition = view.findViewById(R.id.player_progress)!!
     this.playerTimeCurrent = view.findViewById(R.id.player_time)!!
