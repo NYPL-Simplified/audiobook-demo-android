@@ -36,6 +36,9 @@
     android:layout_marginLeft="16dp"
     android:layout_marginRight="16dp"
     android:layout_marginTop="16dp"
+    android:thumbTint="@color/audiobook_player_progress_color"
+    android:progressTint="@color/audiobook_player_progress_color"
+    android:progress="50"
     android:scaleY="2"
     />
 
