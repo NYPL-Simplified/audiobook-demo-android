@@ -50,6 +50,8 @@ class PlayerFragment : android.support.v4.app.Fragment() {
   private lateinit var player: PlayerType
   private lateinit var book: PlayerAudioBookType
   private lateinit var coverView: ImageView
+  private lateinit var playerTitleView: TextView
+  private lateinit var playerAuthorView: TextView
   private lateinit var playPauseButton: ImageView
   private lateinit var playerSkipForwardButton: ImageView
   private lateinit var playerSkipBackwardButton: ImageView
@@ -206,6 +208,9 @@ class PlayerFragment : android.support.v4.app.Fragment() {
     this.viewsExist = true
     this.coverView = view.findViewById(R.id.player_cover)!!
 
+    this.playerTitleView = view.findViewById<TextView>(R.id.player_title)
+    this.playerAuthorView = view.findViewById<TextView>(R.id.player_author)
+
     this.playPauseButton = view.findViewById(R.id.player_play_button)!!
     this.playPauseButton.setOnClickListener({ this.player.play() })
 
@@ -237,6 +242,8 @@ class PlayerFragment : android.support.v4.app.Fragment() {
     this.playerSpineElement.text = this.spineElementText(this.book.spine.first())
 
     this.listener.onPlayerWantsCoverImage(this.coverView)
+    this.playerTitleView.text = this.listener.onPlayerWantsTitle()
+    this.playerAuthorView.text = this.listener.onPlayerWantsAuthor()
 
     /*
      * The fragment will keep receiving events after the views are destroyed. The subscription
@@ -395,6 +402,7 @@ class PlayerFragment : android.support.v4.app.Fragment() {
 
     this.playerPosition.max =
       spineElement.duration.standardSeconds.toInt()
+    this.playerPosition.isEnabled = true
 
     this.playerPositionCurrentSpine = spineElement
     this.playerPositionCurrentOffset = offsetMilliseconds

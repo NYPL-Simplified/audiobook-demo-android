@@ -48,6 +48,8 @@ class PlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
   private lateinit var player: PlayerType
   private var playerInitialized: Boolean = false
   private lateinit var book: PlayerAudioBookType
+  private lateinit var bookTitle: String
+  private lateinit var bookAuthor: String
 
   override fun onCreate(state: Bundle?) {
     super.onCreate(state)
@@ -226,6 +228,8 @@ class PlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
     }
 
     this.book = (bookResult as PlayerResult.Success).result
+    this.bookTitle = manifest.metadata.title
+    this.bookAuthor = "Unknown Author"
     this.player = book.createPlayer()
     this.playerInitialized = true
 
@@ -285,7 +289,16 @@ class PlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
 
   override fun onPlayerTOCClosed() {
     this.log.debug("onPlayerTOCClosed")
-
     this.actionBar.setTitle(R.string.player_title)
+  }
+
+  override fun onPlayerWantsTitle(): String {
+    this.log.debug("onPlayerWantsTitle")
+    return this.bookTitle
+  }
+
+  override fun onPlayerWantsAuthor(): String {
+    this.log.debug("onPlayerWantsAuthor")
+    return this.bookAuthor
   }
 }

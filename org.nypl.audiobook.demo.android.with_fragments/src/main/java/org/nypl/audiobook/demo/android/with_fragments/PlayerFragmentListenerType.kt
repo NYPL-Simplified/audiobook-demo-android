@@ -10,6 +10,10 @@ interface PlayerFragmentListenerType {
 
   fun onPlayerWantsCoverImage(view: ImageView)
 
+  fun onPlayerWantsTitle(): String
+
+  fun onPlayerWantsAuthor(): String
+
   fun onPlayerTOCShouldOpen()
 
   fun onPlayerTOCWantsBook(): PlayerAudioBookType
