@@ -11,7 +11,7 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
-import android.widget.ProgressBar
+import android.widget.SeekBar
 import android.widget.TextView
 import org.joda.time.Duration
 import org.joda.time.format.PeriodFormatter
@@ -26,6 +26,7 @@ import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventWithSpineElement.Pl
 import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventWithSpineElement.PlayerEventPlaybackProgressUpdate
 import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventWithSpineElement.PlayerEventPlaybackStarted
 import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventWithSpineElement.PlayerEventPlaybackStopped
+import org.nypl.audiobook.android.api.PlayerPosition
 import org.nypl.audiobook.android.api.PlayerSpineElementType
 import org.nypl.audiobook.android.api.PlayerType
 import org.slf4j.LoggerFactory
@@ -52,7 +53,8 @@ class PlayerFragment : android.support.v4.app.Fragment() {
   private lateinit var playPauseButton: ImageView
   private lateinit var playerSkipForwardButton: ImageView
   private lateinit var playerSkipBackwardButton: ImageView
-  private lateinit var playerPosition: ProgressBar
+  private var playerPositionDragging: Boolean = false
+  private lateinit var playerPosition: SeekBar
   private lateinit var playerTimeCurrent: TextView
   private lateinit var playerTimeMaximum: TextView
   private lateinit var playerSpineElement: TextView
@@ -62,6 +64,8 @@ class PlayerFragment : android.support.v4.app.Fragment() {
   private lateinit var menuTOC: MenuItem
   private lateinit var parameters: PlayerFragmentParameters
 
+  private var playerPositionCurrentSpine: PlayerSpineElementType? = null
+  private var playerPositionCurrentOffset: Int = 0
   private var playerEventMostRecent: PlayerEvent? = null
   private var playerEventSubscription: Subscription? = null
   private var viewsExist = false
@@ -211,6 +215,22 @@ class PlayerFragment : android.support.v4.app.Fragment() {
     this.playerSkipBackwardButton.setOnClickListener({ this.player.skipBack() })
 
     this.playerPosition = view.findViewById(R.id.player_progress)!!
+    this.playerPosition.isEnabled = false
+    this.playerPositionDragging = false
+    this.playerPosition.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener {
+      override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+        this@PlayerFragment.onProgressBarChanged(progress, fromUser)
+      }
+
+      override fun onStartTrackingTouch(seekBar: SeekBar) {
+        this@PlayerFragment.onProgressBarDraggingStarted()
+      }
+
+      override fun onStopTrackingTouch(seekBar: SeekBar) {
+        this@PlayerFragment.onProgressBarDraggingStopped()
+      }
+    })
+
     this.playerTimeCurrent = view.findViewById(R.id.player_time)!!
     this.playerTimeMaximum = view.findViewById(R.id.player_time_maximum)!!
     this.playerSpineElement = view.findViewById(R.id.player_spine_element)!!
@@ -235,6 +255,30 @@ class PlayerFragment : android.support.v4.app.Fragment() {
       this.playerEventMostRecent = null
       this.onPlayerEvent(event)
     }
+  }
+
+  private fun onProgressBarDraggingStopped() {
+    this.log.debug("onProgressBarDraggingStopped")
+    this.playerPositionDragging = false
+
+    val spine = this.playerPositionCurrentSpine
+    if (spine != null) {
+      this.player.playAtLocation(
+        spine.position.copy(
+          offsetMilliseconds =
+          TimeUnit.MILLISECONDS.convert(
+            this.playerPosition.progress.toLong(),
+            TimeUnit.SECONDS).toInt()))
+    }
+  }
+
+  private fun onProgressBarDraggingStarted() {
+    this.log.debug("onProgressBarDraggingStarted")
+    this.playerPositionDragging = true
+  }
+
+  private fun onProgressBarChanged(progress: Int, fromUser: Boolean) {
+    this.log.debug("onProgressBarChanged: {} {}", progress, fromUser)
   }
 
   private fun hmsTextFromMilliseconds(milliseconds: Int): String {
@@ -339,6 +383,7 @@ class PlayerFragment : android.support.v4.app.Fragment() {
         this.playPauseButton.setImageResource(R.drawable.pause_icon)
         this.playPauseButton.setOnClickListener({ this.player.pause() })
         this.playerSpineElement.text = this.spineElementText(event.spineElement)
+        this.playerPosition.isEnabled = true
         this.onEventUpdateTimeRelatedUI(event.spineElement, event.offsetMilliseconds)
       }
     })
@@ -347,10 +392,18 @@ class PlayerFragment : android.support.v4.app.Fragment() {
   private fun onEventUpdateTimeRelatedUI(
     spineElement: PlayerSpineElementType,
     offsetMilliseconds: Int) {
+
     this.playerPosition.max =
       spineElement.duration.standardSeconds.toInt()
-    this.playerPosition.progress =
-      TimeUnit.MILLISECONDS.toSeconds(offsetMilliseconds.toLong()).toInt()
+
+    this.playerPositionCurrentSpine = spineElement
+    this.playerPositionCurrentOffset = offsetMilliseconds
+
+    if (!this.playerPositionDragging) {
+      this.playerPosition.progress =
+        TimeUnit.MILLISECONDS.toSeconds(offsetMilliseconds.toLong()).toInt()
+    }
+
     this.playerTimeMaximum.text =
       this.hmsTextFromDuration(spineElement.duration)
     this.playerTimeCurrent.text =
