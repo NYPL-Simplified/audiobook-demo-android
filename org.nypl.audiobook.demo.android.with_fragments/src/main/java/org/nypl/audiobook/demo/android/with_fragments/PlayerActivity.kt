@@ -250,6 +250,7 @@ class PlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
 
   override fun onPlayerWantsCoverImage(view: ImageView) {
     this.log.debug("onPlayerWantsCoverImage: {}", view)
+    view.setImageResource(R.drawable.cover)
   }
 
   override fun onPlayerTOCWantsBook(): PlayerAudioBookType {
