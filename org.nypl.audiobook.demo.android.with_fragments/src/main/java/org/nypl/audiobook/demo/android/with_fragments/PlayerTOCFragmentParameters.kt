@@ -6,4 +6,4 @@ import java.io.Serializable
  * Reserved for future use.
  */
 
-class PlayerFragmentParameters : Serializable
+class PlayerTOCFragmentParameters : Serializable

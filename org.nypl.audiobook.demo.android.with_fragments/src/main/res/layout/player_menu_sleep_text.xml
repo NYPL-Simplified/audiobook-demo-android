@@ -5,21 +5,23 @@
   android:layout_height="48dp">
 
   <TextView
-    android:id="@+id/player_menu_playback_rate_text"
+    android:id="@+id/player_menu_sleep_text"
     android:layout_width="32dp"
     android:layout_height="32dp"
-    android:layout_centerInParent="true"
-    android:paddingTop="8dp"
+    android:translationX="-2dp"
+    android:translationY="8dp"
     android:gravity="center"
+    android:text="00:00"
     android:textColor="#fff"
-    android:textSize="8sp"
-    android:text="1.5x" />
+    android:textSize="7sp"
+    android:textStyle="bold"
+    android:typeface="monospace" />
 
   <ImageView
-    android:id="@+id/player_menu_playback_rate_image"
+    android:id="@+id/player_menu_sleep_image"
     android:layout_centerInParent="true"
     android:layout_width="32dp"
     android:layout_height="32dp"
-    android:src="@drawable/speed" />
+    android:src="@drawable/sleep_icon" />
 
 </RelativeLayout>

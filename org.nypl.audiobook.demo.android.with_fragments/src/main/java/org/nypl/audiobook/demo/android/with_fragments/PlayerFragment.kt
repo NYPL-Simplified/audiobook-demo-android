@@ -1,14 +1,15 @@
 package org.nypl.audiobook.demo.android.with_fragments
 
-import android.app.AlertDialog
 import android.content.Context
-import android.content.DialogInterface
 import android.os.Bundle
+import android.os.PowerManager
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
+import android.view.View.INVISIBLE
+import android.view.View.VISIBLE
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.SeekBar
@@ -26,7 +27,12 @@ import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventWithSpineElement.Pl
 import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventWithSpineElement.PlayerEventPlaybackProgressUpdate
 import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventWithSpineElement.PlayerEventPlaybackStarted
 import org.nypl.audiobook.android.api.PlayerEvent.PlayerEventWithSpineElement.PlayerEventPlaybackStopped
-import org.nypl.audiobook.android.api.PlayerPosition
+import org.nypl.audiobook.android.api.PlayerSleepTimerEvent
+import org.nypl.audiobook.android.api.PlayerSleepTimerEvent.PlayerSleepTimerCancelled
+import org.nypl.audiobook.android.api.PlayerSleepTimerEvent.PlayerSleepTimerFinished
+import org.nypl.audiobook.android.api.PlayerSleepTimerEvent.PlayerSleepTimerRunning
+import org.nypl.audiobook.android.api.PlayerSleepTimerEvent.PlayerSleepTimerStopped
+import org.nypl.audiobook.android.api.PlayerSleepTimerType
 import org.nypl.audiobook.android.api.PlayerSpineElementType
 import org.nypl.audiobook.android.api.PlayerType
 import org.slf4j.LoggerFactory
@@ -49,6 +55,7 @@ class PlayerFragment : android.support.v4.app.Fragment() {
   private lateinit var listener: PlayerFragmentListenerType
   private lateinit var player: PlayerType
   private lateinit var book: PlayerAudioBookType
+  private lateinit var sleepTimer: PlayerSleepTimerType
   private lateinit var coverView: ImageView
   private lateinit var playerTitleView: TextView
   private lateinit var playerAuthorView: TextView
@@ -63,6 +70,7 @@ class PlayerFragment : android.support.v4.app.Fragment() {
   private lateinit var menuPlaybackRate: MenuItem
   private lateinit var menuPlaybackRateText: TextView
   private lateinit var menuSleep: MenuItem
+  private lateinit var menuSleepText: TextView
   private lateinit var menuTOC: MenuItem
   private lateinit var parameters: PlayerFragmentParameters
 
@@ -70,16 +78,26 @@ class PlayerFragment : android.support.v4.app.Fragment() {
   private var playerPositionCurrentOffset: Int = 0
   private var playerEventMostRecent: PlayerEvent? = null
   private var playerEventSubscription: Subscription? = null
+  private var playerSleepTimerEventSubscription: Subscription? = null
   private var viewsExist = false
 
   private val log = LoggerFactory.getLogger(PlayerFragment::class.java)
 
-  private val periodFormatter: PeriodFormatter =
+  private val hourMinuteSecondFormatter: PeriodFormatter =
     PeriodFormatterBuilder()
       .printZeroAlways()
       .minimumPrintedDigits(2)
       .appendHours()
       .appendLiteral(":")
+      .appendMinutes()
+      .appendLiteral(":")
+      .appendSeconds()
+      .toFormatter()
+
+  private val minuteSecondFormatter: PeriodFormatter =
+    PeriodFormatterBuilder()
+      .printZeroAlways()
+      .minimumPrintedDigits(2)
       .appendMinutes()
       .appendLiteral(":")
       .appendSeconds()
@@ -109,6 +127,7 @@ class PlayerFragment : android.support.v4.app.Fragment() {
       this.listener = context
       this.player = this.listener.onPlayerWantsPlayer()
       this.book = this.listener.onPlayerTOCWantsBook()
+      this.sleepTimer = this.listener.onPlayerWantsSleepTimer()
     } else {
       throw ClassCastException(
         StringBuilder(64)
@@ -132,14 +151,14 @@ class PlayerFragment : android.support.v4.app.Fragment() {
 
     this.menuPlaybackRate = menu.findItem(R.id.player_menu_playback_rate)
     this.menuPlaybackRate.actionView.setOnClickListener { this.onMenuPlaybackRateSelected() }
-
-    this.menuPlaybackRateText =
-      this.menuPlaybackRate.actionView.findViewById(R.id.player_menu_playback_rate_text)
-    this.menuPlaybackRateText.text =
-      PlayerPlaybackRateAdapter.textOfRate(this.player.playbackRate)
+    this.menuPlaybackRateText = this.menuPlaybackRate.actionView.findViewById(R.id.player_menu_playback_rate_text)
+    this.menuPlaybackRateText.text = PlayerPlaybackRateAdapter.textOfRate(this.player.playbackRate)
 
     this.menuSleep = menu.findItem(R.id.player_menu_sleep)
-    this.menuSleep.setOnMenuItemClickListener { this.onMenuSleepSelected() }
+    this.menuSleep.actionView.setOnClickListener { this.onMenuSleepSelected() }
+    this.menuSleepText = this.menuSleep.actionView.findViewById(R.id.player_menu_sleep_text)
+    this.menuSleepText.text = ""
+    this.menuSleepText.visibility = INVISIBLE
 
     this.menuTOC = menu.findItem(R.id.player_menu_toc)
     this.menuTOC.setOnMenuItemClickListener { this.onMenuTOCSelected() }
@@ -157,6 +176,65 @@ class PlayerFragment : android.support.v4.app.Fragment() {
           { error -> this.onPlayerError(error) },
           { this.onPlayerEventsCompleted() })
     }
+
+    this.playerSleepTimerEventSubscription =
+      this.sleepTimer.status.subscribe(
+        { event -> this.onPlayerSleepTimerEvent(event) },
+        { error -> this.onPlayerSleepTimerError(error) },
+        { this.onPlayerSleepTimerEventsCompleted() })
+  }
+
+  private fun onPlayerSleepTimerEventsCompleted() {
+    this.log.debug("onPlayerSleepTimerEventsCompleted")
+  }
+
+  private fun onPlayerSleepTimerError(error: Throwable) {
+    this.log.error("onPlayerSleepTimerError: ", error)
+  }
+
+  private fun onPlayerSleepTimerEvent(event: PlayerSleepTimerEvent) {
+    this.log.debug("onPlayerSleepTimerEvent: {}", event)
+
+    return when (event) {
+      PlayerSleepTimerStopped ->
+        this.onPlayerSleepTimerEventStopped(event)
+      is PlayerSleepTimerRunning ->
+        this.onPlayerSleepTimerEventRunning(event)
+      is PlayerSleepTimerCancelled ->
+        this.onPlayerSleepTimerEventCancelled(event)
+      PlayerSleepTimerFinished ->
+        this.onPlayerSleepTimerEventFinished(event)
+    }
+  }
+
+  private fun onPlayerSleepTimerEventFinished(event: PlayerSleepTimerEvent) {
+    this.player.pause()
+
+    UIThread.runOnUIThread(Runnable {
+      this.menuSleepText.text = ""
+      this.menuSleepText.visibility = INVISIBLE
+    })
+  }
+
+  private fun onPlayerSleepTimerEventCancelled(event: PlayerSleepTimerCancelled) {
+    UIThread.runOnUIThread(Runnable {
+      this.menuSleepText.text = ""
+      this.menuSleepText.visibility = INVISIBLE
+    })
+  }
+
+  private fun onPlayerSleepTimerEventRunning(event: PlayerSleepTimerRunning) {
+    UIThread.runOnUIThread(Runnable {
+      this.menuSleepText.text = this.minuteSecondTextFromDuration(event.remaining)
+      this.menuSleepText.visibility = VISIBLE
+    })
+  }
+
+  private fun onPlayerSleepTimerEventStopped(event: PlayerSleepTimerEvent) {
+    UIThread.runOnUIThread(Runnable {
+      this.menuSleepText.text = ""
+      this.menuSleepText.visibility = INVISIBLE
+    })
   }
 
   private fun onMenuTOCSelected(): Boolean {
@@ -165,15 +243,7 @@ class PlayerFragment : android.support.v4.app.Fragment() {
   }
 
   private fun onMenuSleepSelected(): Boolean {
-    val dialog =
-      AlertDialog.Builder(this.activity)
-        .setCancelable(true)
-        .setMessage("Not yet implemented!")
-        .setNegativeButton(
-          "OK",
-          { _: DialogInterface, _: Int -> })
-        .create()
-    dialog.show()
+    this.listener.onPlayerSleepTimerShouldOpen()
     return true
   }
 
@@ -199,6 +269,7 @@ class PlayerFragment : android.support.v4.app.Fragment() {
     this.log.debug("onDestroyView")
     super.onDestroyView()
     this.viewsExist = false
+    this.playerSleepTimerEventSubscription?.unsubscribe()
   }
 
   override fun onViewCreated(view: View, state: Bundle?) {
@@ -208,8 +279,8 @@ class PlayerFragment : android.support.v4.app.Fragment() {
     this.viewsExist = true
     this.coverView = view.findViewById(R.id.player_cover)!!
 
-    this.playerTitleView = view.findViewById<TextView>(R.id.player_title)
-    this.playerAuthorView = view.findViewById<TextView>(R.id.player_author)
+    this.playerTitleView = view.findViewById(R.id.player_title)
+    this.playerAuthorView = view.findViewById(R.id.player_author)
 
     this.playPauseButton = view.findViewById(R.id.player_play_button)!!
     this.playPauseButton.setOnClickListener({ this.player.play() })
@@ -222,7 +293,7 @@ class PlayerFragment : android.support.v4.app.Fragment() {
     this.playerPosition = view.findViewById(R.id.player_progress)!!
     this.playerPosition.isEnabled = false
     this.playerPositionDragging = false
-    this.playerPosition.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener {
+    this.playerPosition.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
       override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
         this@PlayerFragment.onProgressBarChanged(progress, fromUser)
       }
@@ -288,20 +359,24 @@ class PlayerFragment : android.support.v4.app.Fragment() {
     this.log.debug("onProgressBarChanged: {} {}", progress, fromUser)
   }
 
-  private fun hmsTextFromMilliseconds(milliseconds: Int): String {
-    return this.periodFormatter.print(Duration.millis(milliseconds.toLong()).toPeriod())
+  private fun hourMinuteSecondTextFromMilliseconds(milliseconds: Int): String {
+    return this.hourMinuteSecondFormatter.print(Duration.millis(milliseconds.toLong()).toPeriod())
   }
 
-  private fun hmsTextFromDuration(duration: Duration): String {
-    return this.periodFormatter.print(duration.toPeriod())
+  private fun hourMinuteSecondTextFromDuration(duration: Duration): String {
+    return this.hourMinuteSecondFormatter.print(duration.toPeriod())
+  }
+
+  private fun minuteSecondTextFromDuration(duration: Duration): String {
+    return this.minuteSecondFormatter.print(duration.toPeriod())
   }
 
   private fun onPlayerEventsCompleted() {
-
+    this.log.debug("onPlayerEventsCompleted")
   }
 
   private fun onPlayerError(error: Throwable) {
-
+    this.log.debug("onPlayerError: ", error)
   }
 
   private fun onPlayerEvent(event: PlayerEvent) {
@@ -413,9 +488,9 @@ class PlayerFragment : android.support.v4.app.Fragment() {
     }
 
     this.playerTimeMaximum.text =
-      this.hmsTextFromDuration(spineElement.duration)
+      this.hourMinuteSecondTextFromDuration(spineElement.duration)
     this.playerTimeCurrent.text =
-      this.hmsTextFromMilliseconds(offsetMilliseconds)
+      this.hourMinuteSecondTextFromMilliseconds(offsetMilliseconds)
     this.playerSpineElement.text =
       this.spineElementText(spineElement)
   }

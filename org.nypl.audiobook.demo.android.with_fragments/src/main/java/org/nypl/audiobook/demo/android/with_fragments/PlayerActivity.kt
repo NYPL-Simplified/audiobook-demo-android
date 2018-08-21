@@ -18,6 +18,8 @@ import org.nypl.audiobook.android.api.PlayerAudioEngines
 import org.nypl.audiobook.android.api.PlayerManifest
 import org.nypl.audiobook.android.api.PlayerManifests
 import org.nypl.audiobook.android.api.PlayerResult
+import org.nypl.audiobook.android.api.PlayerSleepTimer
+import org.nypl.audiobook.android.api.PlayerSleepTimerType
 import org.nypl.audiobook.android.api.PlayerType
 import org.slf4j.LoggerFactory
 import java.io.IOException
@@ -50,6 +52,7 @@ class PlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
   private lateinit var book: PlayerAudioBookType
   private lateinit var bookTitle: String
   private lateinit var bookAuthor: String
+  private lateinit var sleepTimer: PlayerSleepTimerType
 
   override fun onCreate(state: Bundle?) {
     super.onCreate(state)
@@ -68,6 +71,8 @@ class PlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
           thread.name = "org.nypl.audiobook.demo.android.with_fragments.downloader-${thread.id}"
           thread
         }))
+
+    this.sleepTimer = PlayerSleepTimer.create()
 
     if (state == null) {
       this.playerFetchingFragment = PlayerFetchingFragment.newInstance()
@@ -92,10 +97,24 @@ class PlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
   override fun onDestroy() {
     super.onDestroy()
 
-    this.downloadExecutor.shutdown()
+    try {
+      this.downloadExecutor.shutdown()
+    } catch (e: Exception) {
+      this.log.error("error shutting down download executor: ", e)
+    }
+
+    try {
+      this.sleepTimer.close()
+    } catch (e: Exception) {
+      this.log.error("error shutting down sleep timer: ", e)
+    }
 
     if (this.playerInitialized) {
-      this.player.close()
+      try {
+        this.player.close()
+      } catch (e: Exception) {
+        this.log.error("error shutting down player: ", e)
+      }
     }
   }
 
@@ -212,6 +231,11 @@ class PlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
       return
     }
 
+    this.log.debug(
+      "selected audio engine: {} {}",
+      engine.engineProvider.name(),
+      engine.engineProvider.version())
+
     /*
      * Create the audio book.
      */
@@ -265,13 +289,22 @@ class PlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
       this.actionBar.setTitle(R.string.player_toc_title)
 
       val fragment =
-        PlayerTOCFragment.newInstance(PlayerFragmentParameters())
+        PlayerTOCFragment.newInstance(PlayerTOCFragmentParameters())
 
       this.supportFragmentManager
         .beginTransaction()
         .replace(R.id.player_fragment_holder, fragment, "PLAYER_TOC")
         .addToBackStack(null)
         .commit()
+    })
+  }
+
+  override fun onPlayerSleepTimerShouldOpen() {
+    this.log.debug("onPlayerSleepTimerShouldOpen")
+
+    UIThread.runOnUIThread(Runnable {
+      val fragment = PlayerSleepTimerFragment.newInstance()
+      fragment.show(this.supportFragmentManager, "PLAYER_SLEEP_TIMER")
     })
   }
 
@@ -301,5 +334,10 @@ class PlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
   override fun onPlayerWantsAuthor(): String {
     this.log.debug("onPlayerWantsAuthor")
     return this.bookAuthor
+  }
+
+  override fun onPlayerWantsSleepTimer(): PlayerSleepTimerType {
+    this.log.debug("onPlayerWantsSleepTimer")
+    return this.sleepTimer
   }
 }

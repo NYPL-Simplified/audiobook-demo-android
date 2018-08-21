@@ -13,6 +13,7 @@
     android:id="@+id/player_menu_sleep"
     android:title="@string/player_menu_sleep_title"
     android:icon="@drawable/sleep_icon"
+    android:actionLayout="@layout/player_menu_sleep_text"
     android:showAsAction="always"/>
 
   <item

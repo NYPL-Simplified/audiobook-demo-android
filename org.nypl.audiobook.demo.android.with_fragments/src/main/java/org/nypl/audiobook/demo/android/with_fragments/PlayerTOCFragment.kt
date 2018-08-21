@@ -29,7 +29,7 @@ class PlayerTOCFragment : Fragment() {
   private lateinit var player: PlayerType
   private var bookSubscription: Subscription? = null
   private var playerSubscription: Subscription? = null
-  private lateinit var parameters: PlayerFragmentParameters
+  private lateinit var parameters: PlayerTOCFragmentParameters
 
   override fun onCreateView(
     inflater: LayoutInflater,
@@ -51,8 +51,8 @@ class PlayerTOCFragment : Fragment() {
     super.onCreate(savedInstanceState)
 
     this.parameters =
-      this.arguments!!.getSerializable("org.nypl.audiobook.demo.android.with_fragments.parameters")
-        as PlayerFragmentParameters
+      this.arguments!!.getSerializable(PlayerTOCFragment.parametersKey)
+        as PlayerTOCFragmentParameters
   }
 
   override fun onDestroy() {
@@ -174,10 +174,13 @@ class PlayerTOCFragment : Fragment() {
   }
 
   companion object {
+
+    private val parametersKey = "org.nypl.audiobook.demo.android.with_fragments.PlayerFragmentParameters"
+
     @JvmStatic
-    fun newInstance(parameters: PlayerFragmentParameters): PlayerTOCFragment {
+    fun newInstance(parameters: PlayerTOCFragmentParameters): PlayerTOCFragment {
       val args = Bundle()
-      args.putSerializable("org.nypl.audiobook.demo.android.with_fragments.parameters", parameters)
+      args.putSerializable(this.parametersKey, parameters)
       val fragment = PlayerTOCFragment()
       fragment.arguments = args
       return fragment

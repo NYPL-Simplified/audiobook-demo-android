@@ -2,6 +2,7 @@ package org.nypl.audiobook.demo.android.with_fragments
 
 import android.widget.ImageView
 import org.nypl.audiobook.android.api.PlayerAudioBookType
+import org.nypl.audiobook.android.api.PlayerSleepTimerType
 import org.nypl.audiobook.android.api.PlayerType
 
 interface PlayerFragmentListenerType {
@@ -14,6 +15,8 @@ interface PlayerFragmentListenerType {
 
   fun onPlayerWantsAuthor(): String
 
+  fun onPlayerWantsSleepTimer(): PlayerSleepTimerType
+
   fun onPlayerTOCShouldOpen()
 
   fun onPlayerTOCWantsBook(): PlayerAudioBookType
@@ -23,4 +26,7 @@ interface PlayerFragmentListenerType {
   fun onPlayerTOCWantsClose()
 
   fun onPlayerPlaybackRateShouldOpen()
+
+  fun onPlayerSleepTimerShouldOpen()
+
 }
