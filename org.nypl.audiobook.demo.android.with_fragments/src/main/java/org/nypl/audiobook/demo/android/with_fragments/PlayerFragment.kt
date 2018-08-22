@@ -2,7 +2,6 @@ package org.nypl.audiobook.demo.android.with_fragments
 
 import android.content.Context
 import android.os.Bundle
-import android.os.PowerManager
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuInflater
@@ -71,6 +70,7 @@ class PlayerFragment : android.support.v4.app.Fragment() {
   private lateinit var menuPlaybackRateText: TextView
   private lateinit var menuSleep: MenuItem
   private lateinit var menuSleepText: TextView
+  private lateinit var menuSleepEndOfChapter: ImageView
   private lateinit var menuTOC: MenuItem
   private lateinit var parameters: PlayerFragmentParameters
 
@@ -159,6 +159,8 @@ class PlayerFragment : android.support.v4.app.Fragment() {
     this.menuSleepText = this.menuSleep.actionView.findViewById(R.id.player_menu_sleep_text)
     this.menuSleepText.text = ""
     this.menuSleepText.visibility = INVISIBLE
+    this.menuSleepEndOfChapter = this.menuSleep.actionView.findViewById(R.id.player_menu_sleep_end_of_chapter)
+    this.menuSleepEndOfChapter.visibility = INVISIBLE
 
     this.menuTOC = menu.findItem(R.id.player_menu_toc)
     this.menuTOC.setOnMenuItemClickListener { this.onMenuTOCSelected() }
@@ -213,6 +215,7 @@ class PlayerFragment : android.support.v4.app.Fragment() {
     UIThread.runOnUIThread(Runnable {
       this.menuSleepText.text = ""
       this.menuSleepText.visibility = INVISIBLE
+      this.menuSleepEndOfChapter.visibility = INVISIBLE
     })
   }
 
@@ -220,12 +223,21 @@ class PlayerFragment : android.support.v4.app.Fragment() {
     UIThread.runOnUIThread(Runnable {
       this.menuSleepText.text = ""
       this.menuSleepText.visibility = INVISIBLE
+      this.menuSleepEndOfChapter.visibility = INVISIBLE
     })
   }
 
   private fun onPlayerSleepTimerEventRunning(event: PlayerSleepTimerRunning) {
     UIThread.runOnUIThread(Runnable {
-      this.menuSleepText.text = this.minuteSecondTextFromDuration(event.remaining)
+      val remaining = event.remaining
+      if (remaining != null) {
+        this.menuSleepText.text = this.minuteSecondTextFromDuration(remaining)
+        this.menuSleepEndOfChapter.visibility = INVISIBLE
+      } else {
+        this.menuSleepText.text = ""
+        this.menuSleepEndOfChapter.visibility = VISIBLE
+      }
+
       this.menuSleepText.visibility = VISIBLE
     })
   }
@@ -234,6 +246,7 @@ class PlayerFragment : android.support.v4.app.Fragment() {
     UIThread.runOnUIThread(Runnable {
       this.menuSleepText.text = ""
       this.menuSleepText.visibility = INVISIBLE
+      this.menuSleepEndOfChapter.visibility = INVISIBLE
     })
   }
 
@@ -392,23 +405,35 @@ class PlayerFragment : android.support.v4.app.Fragment() {
 
       }
 
-      is PlayerEventPlaybackProgressUpdate ->
-        this.onPlayerEventPlaybackProgressUpdate(event)
-
-      is PlayerEventChapterCompleted -> {
-
-      }
-
       is PlayerEventChapterWaiting -> {
 
       }
 
+      is PlayerEventPlaybackProgressUpdate ->
+        this.onPlayerEventPlaybackProgressUpdate(event)
+      is PlayerEventChapterCompleted ->
+        this.onPlayerEventChapterCompleted(event)
       is PlayerEventPlaybackPaused ->
         this.onPlayerEventPlaybackPaused(event)
       is PlayerEventPlaybackStopped ->
         this.onPlayerEventPlaybackStopped(event)
       is PlayerEventPlaybackRateChanged ->
         this.onPlayerEventPlaybackRateChanged(event)
+    }
+  }
+
+  private fun onPlayerEventChapterCompleted(event: PlayerEventChapterCompleted) {
+
+    /*
+     * If the chapter is completed, and the sleep timer is running indefinitely, then
+     * tell the sleep timer to complete.
+     */
+
+    val running = this.sleepTimer.isRunning
+    if (running != null) {
+      if (running.duration == null) {
+        this.sleepTimer.finish()
+      }
     }
   }
 

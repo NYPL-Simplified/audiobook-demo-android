@@ -98,15 +98,8 @@ class PlayerSleepTimerFragment : DialogFragment() {
 
     when (item) {
       END_OF_CHAPTER -> {
-        val dialog =
-          AlertDialog.Builder(this.activity)
-            .setCancelable(true)
-            .setMessage("Not yet implemented!")
-            .setNegativeButton(
-              "OK",
-              { _: DialogInterface, _: Int -> })
-            .create()
-        dialog.show()
+        this.timer.start(null)
+        this.dismiss()
       }
       MINUTES_60 -> {
         this.timer.start(Duration.standardMinutes(60L))
