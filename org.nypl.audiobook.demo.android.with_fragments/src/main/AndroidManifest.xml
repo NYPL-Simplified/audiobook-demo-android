@@ -37,6 +37,11 @@
       android:name=".PlayerActivity"
       android:configChanges="orientation|keyboardHidden|screenSize" />
 
+    <activity
+      android:name=".ProgressDemoActivity"
+      android:exported="true"
+      android:configChanges="orientation|keyboardHidden|screenSize" />
+
   </application>
 
 </manifest>

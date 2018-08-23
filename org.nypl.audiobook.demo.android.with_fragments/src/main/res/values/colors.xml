@@ -20,6 +20,6 @@
   <color name="audiobook_player_sleep_bg_normal">#ffffff</color>
   <color name="audiobook_player_sleep_fg_normal">#000000</color>
 
-  <color name="audiobook_player_progress_color">@color/audiobook_player_primary</color>
+  <color name="audiobook_player_progress_color">#000000</color>
 
 </resources>

@@ -87,6 +87,7 @@ class PlayerTOCAdapter(
         holder.downloadProgress.setOnClickListener({ })
         holder.downloadProgress.visibility = INVISIBLE
         holder.downloadProgress.progress = 0.0f
+        holder.downloadProgressText.visibility = INVISIBLE
       }
 
       is PlayerSpineElementDownloading -> {
@@ -106,6 +107,8 @@ class PlayerTOCAdapter(
         holder.downloadProgress.setOnClickListener({ this.onConfirmCancelDownloading(item) })
         holder.downloadProgress.visibility = VISIBLE
         holder.downloadProgress.progress = status.percent.toFloat() * 0.01f
+        holder.downloadProgressText.visibility = VISIBLE
+        holder.downloadProgressText.text = status.percent.toString()
       }
 
       is PlayerSpineElementDownloaded -> {
@@ -119,6 +122,7 @@ class PlayerTOCAdapter(
 
         holder.downloadProgress.setOnClickListener({ })
         holder.downloadProgress.visibility = INVISIBLE
+        holder.downloadProgressText.visibility = INVISIBLE
       }
 
       is PlayerSpineElementDownloadFailed -> {
@@ -132,6 +136,7 @@ class PlayerTOCAdapter(
 
         holder.downloadProgress.setOnClickListener({ })
         holder.downloadProgress.visibility = INVISIBLE
+        holder.downloadProgressText.visibility = INVISIBLE
       }
     }
 
@@ -209,7 +214,14 @@ class PlayerTOCAdapter(
       this.view.findViewById(R.id.player_toc_item_view_duration)
     val downloadProgress: PlayerCircularProgressView =
       this.view.findViewById(R.id.player_toc_item_view_progress)
+    val downloadProgressText: TextView =
+      this.view.findViewById(R.id.player_toc_item_view_progress_text)
     val operationButton: ImageView =
       this.view.findViewById(R.id.player_toc_item_view_operation)
+
+    init {
+      this.downloadProgress.thickness = 8.0f
+      this.downloadProgress.color = context.resources.getColor(R.color.audiobook_player_progress_color)
+    }
   }
 }
