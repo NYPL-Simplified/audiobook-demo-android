@@ -53,4 +53,7 @@
   <string name="audiobook_player_sleep_now">Now</string>
   <string name="audiobook_player_sleep_never">Never</string>
 
+  <string name="audiobook_player_buffering">Buffering…</string>
+  <string name="audiobook_player_waiting">Chapter %1$d must be downloaded to continue playback.</string>
+
 </resources>

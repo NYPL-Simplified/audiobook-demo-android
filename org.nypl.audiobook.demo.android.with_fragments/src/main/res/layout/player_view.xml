@@ -150,4 +150,15 @@
     android:layout_marginRight="32dp"
     android:src="@drawable/icon" />
 
+  <TextView
+    android:id="@+id/player_waiting_buffering"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_centerHorizontal="true"
+    android:layout_above="@id/player_play_button"
+    android:layout_marginBottom="16dp"
+    android:text="@string/audiobook_player_waiting"
+    android:textStyle="bold"
+    android:textSize="14sp" />
+
 </RelativeLayout>

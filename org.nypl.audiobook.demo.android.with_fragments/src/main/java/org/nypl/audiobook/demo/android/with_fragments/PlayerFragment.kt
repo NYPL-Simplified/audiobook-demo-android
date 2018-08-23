@@ -66,6 +66,7 @@ class PlayerFragment : android.support.v4.app.Fragment() {
   private lateinit var playerTimeCurrent: TextView
   private lateinit var playerTimeMaximum: TextView
   private lateinit var playerSpineElement: TextView
+  private lateinit var playerWaiting: TextView
   private lateinit var menuPlaybackRate: MenuItem
   private lateinit var menuPlaybackRateText: TextView
   private lateinit var menuSleep: MenuItem
@@ -292,6 +293,9 @@ class PlayerFragment : android.support.v4.app.Fragment() {
     this.playerSkipBackwardButton = view.findViewById(R.id.player_jump_backwards)
     this.playerSkipBackwardButton.setOnClickListener({ this.player.skipBack() })
 
+    this.playerWaiting = view.findViewById(R.id.player_waiting_buffering)
+    this.playerWaiting.text = ""
+
     this.playerPosition = view.findViewById(R.id.player_progress)!!
     this.playerPosition.isEnabled = false
     this.playerPositionDragging = false
@@ -369,15 +373,10 @@ class PlayerFragment : android.support.v4.app.Fragment() {
     return when (event) {
       is PlayerEventPlaybackStarted ->
         this.onPlayerEventPlaybackStarted(event)
-
-      is PlayerEventPlaybackBuffering -> {
-
-      }
-
-      is PlayerEventChapterWaiting -> {
-
-      }
-
+      is PlayerEventPlaybackBuffering ->
+        this.onPlayerEventPlaybackBuffering(event)
+      is PlayerEventChapterWaiting ->
+        this.onPlayerEventChapterWaiting(event)
       is PlayerEventPlaybackProgressUpdate ->
         this.onPlayerEventPlaybackProgressUpdate(event)
       is PlayerEventChapterCompleted ->
@@ -389,6 +388,24 @@ class PlayerFragment : android.support.v4.app.Fragment() {
       is PlayerEventPlaybackRateChanged ->
         this.onPlayerEventPlaybackRateChanged(event)
     }
+  }
+
+  private fun onPlayerEventChapterWaiting(event: PlayerEventChapterWaiting) {
+    UIThread.runOnUIThread(Runnable {
+      val text =
+        this.getString(R.string.audiobook_player_waiting, event.spineElement.index + 1)
+      this.playerWaiting.setText(text)
+      this.playerSpineElement.text = this.spineElementText(event.spineElement)
+      this.onEventUpdateTimeRelatedUI(event.spineElement, 0)
+    })
+  }
+
+  private fun onPlayerEventPlaybackBuffering(event: PlayerEventPlaybackBuffering) {
+    UIThread.runOnUIThread(Runnable {
+      this.playerWaiting.setText(R.string.audiobook_player_buffering)
+      this.playerSpineElement.text = this.spineElementText(event.spineElement)
+      this.onEventUpdateTimeRelatedUI(event.spineElement, event.offsetMilliseconds)
+    })
   }
 
   private fun onPlayerEventChapterCompleted(event: PlayerEventChapterCompleted) {
@@ -441,6 +458,7 @@ class PlayerFragment : android.support.v4.app.Fragment() {
     UIThread.runOnUIThread(Runnable {
       this.playPauseButton.setImageResource(R.drawable.pause_icon)
       this.playPauseButton.setOnClickListener({ this.player.pause() })
+      this.playerWaiting.text = ""
       this.onEventUpdateTimeRelatedUI(event.spineElement, event.offsetMilliseconds)
     })
   }
@@ -451,6 +469,7 @@ class PlayerFragment : android.support.v4.app.Fragment() {
       this.playPauseButton.setOnClickListener({ this.player.pause() })
       this.playerSpineElement.text = this.spineElementText(event.spineElement)
       this.playerPosition.isEnabled = true
+      this.playerWaiting.text = ""
       this.onEventUpdateTimeRelatedUI(event.spineElement, event.offsetMilliseconds)
     })
   }
