@@ -9,7 +9,6 @@ apply plugin: 'kotlin-android'
 task generatePropertiesResources {
   def local_props_file = new File(project.rootProject.projectDir, "local.properties")
   def local_props = new Properties()
-
   local_props.load(new FileInputStream(local_props_file))
 
   def user_name = local_props.get("feed.user_name")
@@ -38,6 +37,7 @@ task generatePropertiesResources {
   properties.store(new FileOutputStream(file), "Automatically generated - DO NOT EDIT")
 }
 
+
 preBuild.dependsOn generatePropertiesResources
 
 android {
@@ -59,10 +59,13 @@ dependencies {
 
   implementation "org.nypl.audiobook:org.nypl.audiobook.android.manifest.nypl:${nypl_audiobook_api_version}"
   implementation "org.nypl.audiobook:org.nypl.audiobook.android.api:${nypl_audiobook_api_version}"
-  implementation "org.nypl.audiobook:org.nypl.audiobook.android.audioengine.core:${nypl_audiobook_api_version}"
   implementation "org.nypl.audiobook:org.nypl.audiobook.android.open_access:${nypl_audiobook_api_version}"
   implementation "org.nypl.audiobook:org.nypl.audiobook.android.views:${nypl_audiobook_api_version}"
   implementation "org.nypl.audiobook:org.nypl.audiobook.android.downloads:${nypl_audiobook_api_version}"
+
+  if (project.property("org.nypl.audiobook.demo.with_findaway").equals("true")) {
+    implementation "org.nypl.audiobook:org.nypl.audiobook.android.audioengine.core:${nypl_audiobook_api_version}"
+  }
 
   implementation "org.slf4j:slf4j-api:${dependency_slf4j_version}"
   implementation "com.github.stephenc.jcip:jcip-annotations:${dependency_jcip_version}"

@@ -3,4 +3,5 @@
 .idea
 app.properties
 build
+gradle.properties
 local.properties
