@@ -266,6 +266,10 @@ class ExamplePlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
     this.player = book.createPlayer()
     this.playerInitialized = true
 
+    /*
+     * Create and load the main player fragment into the holder view declared in the activity.
+     */
+
     ExampleUIThread.runOnUIThread(Runnable {
       this.playerFragment = PlayerFragment.newInstance(PlayerFragmentParameters())
 
@@ -294,6 +298,11 @@ class ExamplePlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
   override fun onPlayerTOCShouldOpen() {
     this.log.debug("onPlayerTOCShouldOpen")
 
+    /*
+     * The player fragment wants us to open the table of contents. Load and display it, and
+     * also set the action bar title.
+     */
+
     ExampleUIThread.runOnUIThread(Runnable {
       this.actionBar.setTitle(R.string.example_player_toc_title)
 
@@ -311,6 +320,10 @@ class ExamplePlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
   override fun onPlayerSleepTimerShouldOpen() {
     this.log.debug("onPlayerSleepTimerShouldOpen")
 
+    /*
+     * The player fragment wants us to open the sleep timer.
+     */
+
     ExampleUIThread.runOnUIThread(Runnable {
       val fragment = PlayerSleepTimerFragment.newInstance()
       fragment.show(this.supportFragmentManager, "PLAYER_SLEEP_TIMER")
@@ -320,6 +333,10 @@ class ExamplePlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
   override fun onPlayerPlaybackRateShouldOpen() {
     this.log.debug("onPlayerPlaybackRateShouldOpen")
 
+    /*
+     * The player fragment wants us to open the playback rate selection dialog.
+     */
+
     ExampleUIThread.runOnUIThread(Runnable {
       val fragment = PlayerPlaybackRateFragment.newInstance()
       fragment.show(this.supportFragmentManager, "PLAYER_RATE")
@@ -327,6 +344,12 @@ class ExamplePlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
   }
 
   override fun onPlayerTOCWantsClose() {
+
+    /*
+     * The player fragment wants to close the table of contents dialog. Pop it from the back
+     * stack and set the action bar title back to the original title.
+     */
+
     this.log.debug("onPlayerTOCWantsClose")
     this.supportFragmentManager.popBackStack()
     this.actionBar.setTitle(R.string.example_player_title)
