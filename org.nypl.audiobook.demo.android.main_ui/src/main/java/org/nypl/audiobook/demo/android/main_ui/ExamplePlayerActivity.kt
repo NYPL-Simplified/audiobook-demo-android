@@ -344,13 +344,13 @@ class ExamplePlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
   }
 
   override fun onPlayerTOCWantsClose() {
+    this.log.debug("onPlayerTOCWantsClose")
 
     /*
      * The player fragment wants to close the table of contents dialog. Pop it from the back
      * stack and set the action bar title back to the original title.
      */
 
-    this.log.debug("onPlayerTOCWantsClose")
     this.supportFragmentManager.popBackStack()
     this.actionBar.setTitle(R.string.example_player_title)
   }
