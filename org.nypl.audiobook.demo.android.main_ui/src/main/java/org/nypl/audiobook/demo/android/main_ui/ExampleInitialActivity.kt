@@ -5,8 +5,10 @@ import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
+import org.nypl.audiobook.android.api.PlayerAudioEngineProviderType
 import org.slf4j.LoggerFactory
 import java.util.Properties
+import java.util.ServiceLoader
 
 /**
  * A trivial activity that allows the user to specify various parameters required for downloading
@@ -29,6 +31,8 @@ class ExampleInitialActivity : Activity() {
     super.onCreate(state)
 
     this.setContentView(R.layout.example_initial_view)
+
+    this.logProviders()
 
     this.feed_username = this.findViewById(R.id.example_feed_user_name_entry)
     this.feed_password = this.findViewById(R.id.example_feed_password_entry)
@@ -79,6 +83,15 @@ class ExampleInitialActivity : Activity() {
       this.finish()
 
       button.isEnabled = false
+    }
+  }
+
+  private fun logProviders() {
+    val loader =
+      ServiceLoader.load(PlayerAudioEngineProviderType::class.java)
+
+    loader.forEach { provider ->
+      LOG.debug("available engine provider: {} {}", provider.name(), provider.version())
     }
   }
 }
