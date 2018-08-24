@@ -327,11 +327,8 @@ class ExamplePlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
   }
 
   override fun onPlayerTOCWantsClose() {
+    this.log.debug("onPlayerTOCWantsClose")
     this.supportFragmentManager.popBackStack()
-  }
-
-  override fun onPlayerTOCClosed() {
-    this.log.debug("onPlayerTOCClosed")
     this.actionBar.setTitle(R.string.example_player_title)
   }
 
