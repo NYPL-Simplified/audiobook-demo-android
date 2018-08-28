@@ -19,11 +19,13 @@
   <string name="example_preset_io7m">io7m</string>
   <string name="example_preset_flatland">flatland</string>
   <string name="example_preset_default">default</string>
+  <string name="example_preset_librivox">librivox</string>
   <string name="example_fetch_requesting_manifest">Requesting manifest…</string>
   <string name="example_fetch_processing_manifest">Processing manifest…</string>
   <string name="example_fetch_received_other_manifest">Received manifest.</string>
   <string name="example_uri_flatland">https://raw.githubusercontent.com/HadrienGardeur/audiobook-manifest/gh-pages/examples/flatland.audiobook-manifest</string>
   <string name="example_uri_io7m">http://ataxia.io7m.com/2018/08/02/open_access_0.json</string>
+  <string name="example_uri_librivox">https://api.archivelab.org/books/tom_sawyer_librivox/opds_audio_manifest</string>
   <string name="example_player_title">@string/example_app_name</string>
   <string name="example_player_toc_title">Table Of Contents</string>
 

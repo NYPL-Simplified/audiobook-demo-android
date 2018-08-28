@@ -1,14 +1,24 @@
 package org.nypl.audiobook.demo.android.main_ui
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
+import android.widget.Spinner
+import android.widget.TextView
 import org.nypl.audiobook.android.api.PlayerAudioEngineProviderType
 import org.slf4j.LoggerFactory
+import java.net.URI
 import java.util.Properties
 import java.util.ServiceLoader
+
 
 /**
  * A trivial activity that allows the user to specify various parameters required for downloading
@@ -19,52 +29,59 @@ class ExampleInitialActivity : Activity() {
 
   private val LOG = LoggerFactory.getLogger(ExampleInitialActivity::class.java)
 
-  private lateinit var feed_username: EditText
-  private lateinit var feed_password: EditText
-  private lateinit var feed_borrow_uri: EditText
-  private lateinit var feed_go: Button
-  private lateinit var feed_preset_io7m: Button
-  private lateinit var feed_preset_default: Button
-  private lateinit var feed_preset_flatland: Button
+  private lateinit var feedUsername: EditText
+  private lateinit var feedPassword: EditText
+  private lateinit var feedBorrowURI: EditText
+  private lateinit var feedGo: Button
+  private lateinit var feedPresets: Spinner
+  private lateinit var feedPresetsItems: Array<FeedPreset>
+  private lateinit var feedPresetsAdapter: FeedPresetsAdapter
+  private lateinit var feedVersions: TextView
 
   override fun onCreate(state: Bundle?) {
     super.onCreate(state)
 
     this.setContentView(R.layout.example_initial_view)
 
-    this.logProviders()
+    this.feedPresetsItems = loadPresets()
 
-    this.feed_username = this.findViewById(R.id.example_feed_user_name_entry)
-    this.feed_password = this.findViewById(R.id.example_feed_password_entry)
-    this.feed_borrow_uri = this.findViewById(R.id.example_feed_borrow_uri_entry)
-    this.feed_go = this.findViewById(R.id.example_feed_fetch)
-    this.feed_preset_io7m = this.findViewById(R.id.example_feed_preset_io7m)
-    this.feed_preset_default = this.findViewById(R.id.example_feed_preset_default)
-    this.feed_preset_flatland = this.findViewById(R.id.example_feed_preset_flatland)
+    this.feedUsername = this.findViewById(R.id.example_feed_user_name_entry)
+    this.feedPassword = this.findViewById(R.id.example_feed_password_entry)
+    this.feedBorrowURI = this.findViewById(R.id.example_feed_borrow_uri_entry)
+    this.feedGo = this.findViewById(R.id.example_feed_fetch)
+    this.feedPresets = this.findViewById(R.id.example_feed_presets)
+
+    this.feedPresetsAdapter = FeedPresetsAdapter(this, feedPresetsItems)
+    this.feedPresets.adapter = this.feedPresetsAdapter
+    this.feedPresetsAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+    this.feedVersions = this.findViewById(R.id.example_versions)
+
+    this.feedPresets.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+      override fun onNothingSelected(parent: AdapterView<*>?) {
+
+      }
+
+      override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+        val preset = this@ExampleInitialActivity.feedPresetsItems.get(position)
+        this@ExampleInitialActivity.feedBorrowURI.setText(preset.uri.toString())
+      }
+    }
+
+    this.logProviders(this.feedVersions)
 
     val properties = Properties()
     properties.load(this.assets.open("app.properties"))
 
-    this.feed_username.setText(properties.getProperty("feed.user_name"))
-    this.feed_password.setText(properties.getProperty("feed.password"))
-    this.feed_borrow_uri.setText(properties.getProperty("feed.borrow_uri"))
+    this.feedUsername.setText(properties.getProperty("feed.user_name"))
+    this.feedPassword.setText(properties.getProperty("feed.password"))
+    this.feedBorrowURI.setText(properties.getProperty("feed.borrow_uri"))
 
-    this.feed_preset_default.setOnClickListener { button ->
-      this.feed_borrow_uri.setText(properties.getProperty("feed.borrow_uri"))
-    }
-    this.feed_preset_flatland.setOnClickListener { button ->
-      this.feed_borrow_uri.setText(R.string.example_uri_flatland)
-    }
-    this.feed_preset_io7m.setOnClickListener { button ->
-      this.feed_borrow_uri.setText(R.string.example_uri_io7m)
-    }
-
-    this.feed_go.setOnClickListener { button ->
-      val user = this.feed_username.text.toString()
+    this.feedGo.setOnClickListener { button ->
+      val user = this.feedUsername.text.toString()
       this.LOG.debug("fetch: username {}", user)
-      val pass = this.feed_password.text.toString()
+      val pass = this.feedPassword.text.toString()
       this.LOG.debug("fetch: password {}", pass)
-      val uri = this.feed_borrow_uri.text.toString()
+      val uri = this.feedBorrowURI.text.toString()
       this.LOG.debug("fetch: borrow uri {}", uri)
 
       val parameters =
@@ -86,12 +103,69 @@ class ExampleInitialActivity : Activity() {
     }
   }
 
-  private fun logProviders() {
+  private fun loadPresets(): Array<FeedPreset> {
+    return arrayOf(
+      FeedPreset(
+        this.resources.getString(R.string.example_preset_io7m),
+        URI.create(this.resources.getString(R.string.example_uri_io7m))),
+      FeedPreset(
+        this.resources.getString(R.string.example_preset_flatland),
+        URI.create(this.resources.getString(R.string.example_uri_flatland))),
+      FeedPreset(
+        this.resources.getString(R.string.example_preset_librivox),
+        URI.create(this.resources.getString(R.string.example_uri_librivox))))
+  }
+
+  data class FeedPreset(
+    val name: String,
+    val uri: java.net.URI)
+
+  class FeedPresetsAdapter(
+    context: Context,
+    val items: Array<FeedPreset>)
+    : ArrayAdapter<FeedPreset>(context, android.R.layout.simple_spinner_item, items) {
+
+    override fun getDropDownView(
+      position: Int,
+      convertView: View?,
+      parent: ViewGroup): View {
+      return getCustomView(position, convertView, parent)
+    }
+
+    override fun getView(
+      position: Int,
+      convertView: View?,
+      parent: ViewGroup): View {
+      return getCustomView(position, convertView, parent)
+    }
+
+    private fun getCustomView(
+      position: Int,
+      convertView: View?,
+      parent: ViewGroup): View {
+
+      val inflater = context.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
+      val row = inflater.inflate(android.R.layout.simple_spinner_item, parent, false)
+      val label = row.findViewById(android.R.id.text1) as TextView
+      label.text = this.items.get(position).name
+      return row
+    }
+  }
+
+  private fun logProviders(feedVersions: TextView) {
+    val sb = StringBuilder()
+
     val loader =
       ServiceLoader.load(PlayerAudioEngineProviderType::class.java)
 
     loader.forEach { provider ->
       LOG.debug("available engine provider: {} {}", provider.name(), provider.version())
+      sb.append(provider.name())
+      sb.append(" ")
+      sb.append(provider.version().toString())
+      sb.append("\n")
     }
+
+    feedVersions.text = sb.toString()
   }
 }

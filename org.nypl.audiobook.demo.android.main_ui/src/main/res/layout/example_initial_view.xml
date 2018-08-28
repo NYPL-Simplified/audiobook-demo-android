@@ -3,8 +3,7 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
   android:layout_width="match_parent"
   android:layout_height="match_parent"
-  android:orientation="vertical"
-  android:padding="16dp">
+  android:layout_margin="16dp">
 
   <TextView
     android:id="@+id/example_feed_user_name_label"
@@ -69,27 +68,19 @@
     android:layout_marginTop="32dp"
     android:text="@string/example_field_presets" />
 
-  <Button
-    android:id="@+id/example_feed_preset_io7m"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:layout_below="@id/example_feed_presets_label"
-    android:text="@string/example_preset_io7m" />
+  <Spinner
+    android:id="@+id/example_feed_presets"
+    android:layout_below="@+id/example_feed_presets_label"
+    android:layout_marginTop="0dp"
+    android:layout_width="match_parent"
+    android:layout_height="48dp"/>
 
-  <Button
-    android:id="@+id/example_feed_preset_flatland"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:layout_below="@id/example_feed_presets_label"
-    android:layout_toRightOf="@+id/example_feed_preset_io7m"
-    android:text="@string/example_preset_flatland" />
-
-  <Button
-    android:id="@+id/example_feed_preset_default"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:layout_below="@id/example_feed_presets_label"
-    android:layout_toRightOf="@+id/example_feed_preset_flatland"
-    android:text="@string/example_preset_default" />
+  <TextView
+    android:id="@+id/example_versions"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layout_below="@+id/example_feed_presets"
+    android:gravity="bottom"
+    android:textSize="10sp" />
 
 </RelativeLayout>
