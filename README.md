@@ -2,8 +2,12 @@
 
 ### Building
 
-The application pulls an audiobook from one of a set of URIs. The default URI must be specified
-at compile time by defining a username, password, and URI in your `local.properties` file:
+The application pulls an audiobook manifest from one of a set of
+selectable URIs. The application includes a set of built-in URIs
+pointing to various example books around the internet, and also
+supports providing a default URI at compile-time to test a specific
+book. The default URI must be specified at compile time by defining
+a username, password, and URI in your `local.properties` file:
 
 ```bash
 $ cat local.properties
