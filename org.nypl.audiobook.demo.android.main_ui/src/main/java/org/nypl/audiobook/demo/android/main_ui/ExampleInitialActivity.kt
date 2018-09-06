@@ -18,6 +18,11 @@ import org.slf4j.LoggerFactory
 import java.net.URI
 import java.util.Properties
 import java.util.ServiceLoader
+import android.content.pm.PackageManager
+import android.R.attr.versionName
+import android.content.pm.PackageInfo
+
+
 
 
 /**
@@ -43,7 +48,10 @@ class ExampleInitialActivity : Activity() {
 
     this.setContentView(R.layout.example_initial_view)
 
-    this.feedPresetsItems = loadPresets()
+    val properties = Properties()
+    properties.load(this.assets.open("app.properties"))
+
+    this.feedPresetsItems = loadPresets(properties.getProperty("feed.borrow_uri"))
 
     this.feedUsername = this.findViewById(R.id.example_feed_user_name_entry)
     this.feedPassword = this.findViewById(R.id.example_feed_password_entry)
@@ -58,19 +66,20 @@ class ExampleInitialActivity : Activity() {
 
     this.feedPresets.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
       override fun onNothingSelected(parent: AdapterView<*>?) {
-
+        this@ExampleInitialActivity.feedUsername.setText(properties.getProperty("feed.user_name"))
+        this@ExampleInitialActivity.feedPassword.setText(properties.getProperty("feed.password"))
+        this@ExampleInitialActivity.feedBorrowURI.setText(properties.getProperty("feed.borrow_uri"))
       }
 
       override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
         val preset = this@ExampleInitialActivity.feedPresetsItems.get(position)
         this@ExampleInitialActivity.feedBorrowURI.setText(preset.uri.toString())
+        this@ExampleInitialActivity.feedUsername.setText("")
+        this@ExampleInitialActivity.feedPassword.setText("")
       }
     }
 
     this.logProviders(this.feedVersions)
-
-    val properties = Properties()
-    properties.load(this.assets.open("app.properties"))
 
     this.feedUsername.setText(properties.getProperty("feed.user_name"))
     this.feedPassword.setText(properties.getProperty("feed.password"))
@@ -103,17 +112,17 @@ class ExampleInitialActivity : Activity() {
     }
   }
 
-  private fun loadPresets(): Array<FeedPreset> {
+  private fun loadPresets(defaultURI: String): Array<FeedPreset> {
     return arrayOf(
+      FeedPreset(
+        this.resources.getString(R.string.example_preset_default),
+        URI.create(defaultURI)),
       FeedPreset(
         this.resources.getString(R.string.example_preset_io7m),
         URI.create(this.resources.getString(R.string.example_uri_io7m))),
       FeedPreset(
         this.resources.getString(R.string.example_preset_flatland),
-        URI.create(this.resources.getString(R.string.example_uri_flatland))),
-      FeedPreset(
-        this.resources.getString(R.string.example_preset_librivox),
-        URI.create(this.resources.getString(R.string.example_uri_librivox))))
+        URI.create(this.resources.getString(R.string.example_uri_flatland))))
   }
 
   data class FeedPreset(
@@ -154,6 +163,15 @@ class ExampleInitialActivity : Activity() {
 
   private fun logProviders(feedVersions: TextView) {
     val sb = StringBuilder()
+
+    try {
+      val info = this.packageManager.getPackageInfo(packageName, 0)
+      sb.append("org.nypl.audiobook.demo ")
+      sb.append(info.versionName)
+      sb.append("\n")
+    } catch (e: PackageManager.NameNotFoundException) {
+      e.printStackTrace()
+    }
 
     val loader =
       ServiceLoader.load(PlayerAudioEngineProviderType::class.java)
