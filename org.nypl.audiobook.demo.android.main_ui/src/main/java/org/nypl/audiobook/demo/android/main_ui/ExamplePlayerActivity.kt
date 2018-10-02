@@ -271,7 +271,8 @@ class ExamplePlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
      */
 
     ExampleUIThread.runOnUIThread(Runnable {
-      this.playerFragment = PlayerFragment.newInstance(PlayerFragmentParameters())
+      this.playerFragment = PlayerFragment.newInstance(
+        PlayerFragmentParameters(primaryColor = resources.getColor(R.color.example_tint_color)))
 
       this.supportFragmentManager
         .beginTransaction()
@@ -307,7 +308,8 @@ class ExamplePlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
       this.actionBar.setTitle(R.string.example_player_toc_title)
 
       val fragment =
-        PlayerTOCFragment.newInstance(PlayerTOCFragmentParameters())
+        PlayerTOCFragment.newInstance(PlayerTOCFragmentParameters(
+          primaryColor = resources.getColor(R.color.example_tint_color)))
 
       this.supportFragmentManager
         .beginTransaction()
@@ -325,7 +327,8 @@ class ExamplePlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
      */
 
     ExampleUIThread.runOnUIThread(Runnable {
-      val fragment = PlayerSleepTimerFragment.newInstance()
+      val fragment = PlayerSleepTimerFragment.newInstance(
+        PlayerFragmentParameters(primaryColor = resources.getColor(R.color.example_tint_color)))
       fragment.show(this.supportFragmentManager, "PLAYER_SLEEP_TIMER")
     })
   }
@@ -338,7 +341,8 @@ class ExamplePlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
      */
 
     ExampleUIThread.runOnUIThread(Runnable {
-      val fragment = PlayerPlaybackRateFragment.newInstance()
+      val fragment = PlayerPlaybackRateFragment.newInstance(
+        PlayerFragmentParameters(primaryColor = resources.getColor(R.color.example_tint_color)))
       fragment.show(this.supportFragmentManager, "PLAYER_RATE")
     })
   }
