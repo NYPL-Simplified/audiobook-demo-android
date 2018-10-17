@@ -63,7 +63,7 @@ class ExamplePlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
   private lateinit var sleepTimer: PlayerSleepTimerType
 
   override fun onCreate(state: Bundle?) {
-    super.onCreate(state)
+    super.onCreate(null)
 
     this.setContentView(R.layout.example_player_activity)
     this.actionBar.setTitle(R.string.example_player_title)
