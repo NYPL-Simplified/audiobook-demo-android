@@ -32,6 +32,7 @@ import org.nypl.audiobook.android.views.PlayerTOCFragmentParameters
 import org.slf4j.LoggerFactory
 import java.io.IOException
 import java.util.concurrent.Executors
+import java.util.concurrent.ScheduledExecutorService
 
 class ExamplePlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
 
@@ -54,6 +55,7 @@ class ExamplePlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
 
   private lateinit var examplePlayerFetchingFragment: ExamplePlayerFetchingFragment
   private lateinit var downloadExecutor: ListeningExecutorService
+  private lateinit var uiScheduledExecutor: ScheduledExecutorService
   private lateinit var playerFragment: PlayerFragment
   private lateinit var player: PlayerType
   private var playerInitialized: Boolean = false
@@ -69,17 +71,24 @@ class ExamplePlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
     this.actionBar.setTitle(R.string.example_player_title)
 
     /*
-     * Create an executor for download threads. Each thread is assigned a useful name
-     * for correct blame assignment during debugging.
+     * Create an executor for download threads, and for scheduling UI events. Each thread is
+     * assigned a useful name for correct blame assignment during debugging.
      */
 
     this.downloadExecutor =
       MoreExecutors.listeningDecorator(
-        Executors.newFixedThreadPool(4, { r: Runnable? ->
+        Executors.newFixedThreadPool(4) { r: Runnable? ->
           val thread = Thread(r)
           thread.name = "org.nypl.audiobook.demo.android.with_fragments.downloader-${thread.id}"
           thread
-        }))
+        })
+
+    this.uiScheduledExecutor =
+      Executors.newSingleThreadScheduledExecutor { r: Runnable? ->
+        val thread = Thread(r)
+        thread.name = "org.nypl.audiobook.demo.android.with_fragments.ui-schedule-${thread.id}"
+        thread
+      }
 
     this.sleepTimer = PlayerSleepTimer.create()
 
@@ -372,5 +381,9 @@ class ExamplePlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
   override fun onPlayerWantsSleepTimer(): PlayerSleepTimerType {
     this.log.debug("onPlayerWantsSleepTimer")
     return this.sleepTimer
+  }
+
+  override fun onPlayerWantsScheduledExecutor(): ScheduledExecutorService {
+    return this.uiScheduledExecutor
   }
 }

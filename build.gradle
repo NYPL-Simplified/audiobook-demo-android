@@ -18,7 +18,7 @@ ext {
    * The version of the NYPL Audiobook API used by this package.
    */
 
-  nypl_audiobook_api_version = "0.0.51"
+  nypl_audiobook_api_version = "0.0.54-SNAPSHOT"
 
   dependency_jackson_version = "2.9.5"
   dependency_rxjava_version = "1.2.3"
@@ -44,8 +44,14 @@ allprojects {
 subprojects {
   repositories {
 
+    /*
+     * The order of these repositories is significant!
+     */
+
     mavenCentral()
     mavenLocal()
+    google()
+    jcenter()
 
     maven {
       credentials {
@@ -55,11 +61,11 @@ subprojects {
       url "https://nexus.librarysimplified.org:8443/nexus/content/groups/external/"
     }
 
-    maven {
-      url "http://maven.findawayworld.com/artifactory/libs-release/"
+    if (project.hasProperty("org.nypl.audiobook.demo.with_findaway")) {
+      if (project.property("org.nypl.audiobook.demo.with_findaway") == "true") {
+        maven { url "http://maven.findawayworld.com/artifactory/libs-release/" }
+        maven { url "http://maven.findawayworld.com/artifactory/libs-snapshot/" }
+      }
     }
-
-    jcenter()
-    google()
   }
 }
