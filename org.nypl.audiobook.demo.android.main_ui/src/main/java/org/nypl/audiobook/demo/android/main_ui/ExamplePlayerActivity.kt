@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.support.v4.app.FragmentActivity
 import android.widget.ImageView
+import android.widget.Toast
 import com.google.common.util.concurrent.ListeningExecutorService
 import com.google.common.util.concurrent.MoreExecutors
 import okhttp3.Call
@@ -22,6 +23,7 @@ import org.nypl.audiobook.android.api.PlayerSleepTimer
 import org.nypl.audiobook.android.api.PlayerSleepTimerType
 import org.nypl.audiobook.android.api.PlayerType
 import org.nypl.audiobook.android.downloads.DownloadProvider
+import org.nypl.audiobook.android.views.PlayerAccessibilityEvent
 import org.nypl.audiobook.android.views.PlayerFragment
 import org.nypl.audiobook.android.views.PlayerFragmentListenerType
 import org.nypl.audiobook.android.views.PlayerFragmentParameters
@@ -199,7 +201,7 @@ class ExamplePlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
      */
 
     if (response.isSuccessful) {
-      val stream = response.body().byteStream()
+      val stream = response.body()!!.byteStream()
       stream.use { _ ->
         val result = PlayerManifests.parse(stream)
         when (result) {
@@ -385,5 +387,12 @@ class ExamplePlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
 
   override fun onPlayerWantsScheduledExecutor(): ScheduledExecutorService {
     return this.uiScheduledExecutor
+  }
+
+  override fun onPlayerAccessibilityEvent(event: PlayerAccessibilityEvent) {
+    ExampleUIThread.runOnUIThread(Runnable {
+      val toast = Toast.makeText(this.applicationContext, event.message, Toast.LENGTH_LONG)
+      toast.show()
+    })
   }
 }

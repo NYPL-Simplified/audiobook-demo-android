@@ -3,6 +3,7 @@ package org.nypl.audiobook.demo.android.main_ui
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -18,11 +19,6 @@ import org.slf4j.LoggerFactory
 import java.net.URI
 import java.util.Properties
 import java.util.ServiceLoader
-import android.content.pm.PackageManager
-import android.R.attr.versionName
-import android.content.pm.PackageInfo
-
-
 
 
 /**
