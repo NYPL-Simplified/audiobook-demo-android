@@ -283,7 +283,9 @@ class ExamplePlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
 
     ExampleUIThread.runOnUIThread(Runnable {
       this.playerFragment = PlayerFragment.newInstance(
-        PlayerFragmentParameters(primaryColor = resources.getColor(R.color.example_tint_color)))
+        PlayerFragmentParameters(
+          allowIndividualDownloadCancellations = false,
+          primaryColor = resources.getColor(R.color.example_tint_color)))
 
       this.supportFragmentManager
         .beginTransaction()
@@ -300,6 +302,12 @@ class ExamplePlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
   override fun onPlayerWantsCoverImage(view: ImageView) {
     this.log.debug("onPlayerWantsCoverImage: {}", view)
     view.setImageResource(R.drawable.example_cover)
+    view.setOnLongClickListener {
+      val toast = Toast.makeText(this, "Deleted local book data", Toast.LENGTH_SHORT)
+      toast.show()
+      this.book.deleteLocalChapterData()
+      true
+    }
   }
 
   override fun onPlayerTOCWantsBook(): PlayerAudioBookType {
@@ -320,6 +328,7 @@ class ExamplePlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
 
       val fragment =
         PlayerTOCFragment.newInstance(PlayerTOCFragmentParameters(
+          allowIndividualDownloadCancellations = false,
           primaryColor = resources.getColor(R.color.example_tint_color)))
 
       this.supportFragmentManager
@@ -339,7 +348,9 @@ class ExamplePlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
 
     ExampleUIThread.runOnUIThread(Runnable {
       val fragment = PlayerSleepTimerFragment.newInstance(
-        PlayerFragmentParameters(primaryColor = resources.getColor(R.color.example_tint_color)))
+        PlayerFragmentParameters(
+          allowIndividualDownloadCancellations = false,
+          primaryColor = resources.getColor(R.color.example_tint_color)))
       fragment.show(this.supportFragmentManager, "PLAYER_SLEEP_TIMER")
     })
   }
@@ -353,7 +364,9 @@ class ExamplePlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
 
     ExampleUIThread.runOnUIThread(Runnable {
       val fragment = PlayerPlaybackRateFragment.newInstance(
-        PlayerFragmentParameters(primaryColor = resources.getColor(R.color.example_tint_color)))
+        PlayerFragmentParameters(
+          allowIndividualDownloadCancellations = false,
+          primaryColor = resources.getColor(R.color.example_tint_color)))
       fragment.show(this.supportFragmentManager, "PLAYER_RATE")
     })
   }
