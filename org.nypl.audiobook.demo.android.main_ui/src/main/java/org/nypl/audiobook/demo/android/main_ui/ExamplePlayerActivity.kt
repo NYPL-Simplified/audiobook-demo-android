@@ -284,7 +284,6 @@ class ExamplePlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
     ExampleUIThread.runOnUIThread(Runnable {
       this.playerFragment = PlayerFragment.newInstance(
         PlayerFragmentParameters(
-          allowIndividualDownloadCancellations = false,
           primaryColor = resources.getColor(R.color.example_tint_color)))
 
       this.supportFragmentManager
@@ -305,7 +304,7 @@ class ExamplePlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
     view.setOnLongClickListener {
       val toast = Toast.makeText(this, "Deleted local book data", Toast.LENGTH_SHORT)
       toast.show()
-      this.book.deleteLocalChapterData()
+      this.book.wholeBookDownloadTask.delete()
       true
     }
   }
@@ -328,7 +327,6 @@ class ExamplePlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
 
       val fragment =
         PlayerTOCFragment.newInstance(PlayerTOCFragmentParameters(
-          allowIndividualDownloadCancellations = false,
           primaryColor = resources.getColor(R.color.example_tint_color)))
 
       this.supportFragmentManager
@@ -349,7 +347,6 @@ class ExamplePlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
     ExampleUIThread.runOnUIThread(Runnable {
       val fragment = PlayerSleepTimerFragment.newInstance(
         PlayerFragmentParameters(
-          allowIndividualDownloadCancellations = false,
           primaryColor = resources.getColor(R.color.example_tint_color)))
       fragment.show(this.supportFragmentManager, "PLAYER_SLEEP_TIMER")
     })
@@ -365,7 +362,6 @@ class ExamplePlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
     ExampleUIThread.runOnUIThread(Runnable {
       val fragment = PlayerPlaybackRateFragment.newInstance(
         PlayerFragmentParameters(
-          allowIndividualDownloadCancellations = false,
           primaryColor = resources.getColor(R.color.example_tint_color)))
       fragment.show(this.supportFragmentManager, "PLAYER_RATE")
     })
