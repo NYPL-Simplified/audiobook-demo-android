@@ -114,6 +114,9 @@ class ExampleInitialActivity : Activity() {
         this.resources.getString(R.string.example_preset_default),
         URI.create(defaultURI)),
       FeedPreset(
+        this.resources.getString(R.string.example_preset_archive_org),
+        URI.create(this.resources.getString(R.string.example_uri_archive_org))),
+      FeedPreset(
         this.resources.getString(R.string.example_preset_io7m),
         URI.create(this.resources.getString(R.string.example_uri_io7m))),
       FeedPreset(
