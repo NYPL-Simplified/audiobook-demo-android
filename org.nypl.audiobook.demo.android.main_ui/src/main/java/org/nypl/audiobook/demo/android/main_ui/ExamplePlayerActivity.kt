@@ -3,6 +3,7 @@ package org.nypl.audiobook.demo.android.main_ui
 import android.content.Intent
 import android.os.Bundle
 import android.support.v4.app.FragmentActivity
+import android.support.v7.app.AppCompatActivity
 import android.widget.ImageView
 import android.widget.Toast
 import com.google.common.util.concurrent.ListeningExecutorService
@@ -36,7 +37,7 @@ import java.io.IOException
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 
-class ExamplePlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
+class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
 
   private val log = LoggerFactory.getLogger(ExamplePlayerActivity::class.java)
 
@@ -69,8 +70,9 @@ class ExamplePlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
   override fun onCreate(state: Bundle?) {
     super.onCreate(null)
 
+    this.setTheme(R.style.AudioBooksWithActionBar)
     this.setContentView(R.layout.example_player_activity)
-    this.actionBar.setTitle(R.string.example_player_title)
+    this.supportActionBar?.setTitle(R.string.example_player_title)
 
     /*
      * Create an executor for download threads, and for scheduling UI events. Each thread is
@@ -282,9 +284,7 @@ class ExamplePlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
      */
 
     ExampleUIThread.runOnUIThread(Runnable {
-      this.playerFragment = PlayerFragment.newInstance(
-        PlayerFragmentParameters(
-          primaryColor = resources.getColor(R.color.example_tint_color)))
+      this.playerFragment = PlayerFragment.newInstance(PlayerFragmentParameters())
 
       this.supportFragmentManager
         .beginTransaction()
@@ -323,11 +323,10 @@ class ExamplePlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
      */
 
     ExampleUIThread.runOnUIThread(Runnable {
-      this.actionBar.setTitle(R.string.example_player_toc_title)
+      this.supportActionBar?.setTitle(R.string.example_player_toc_title)
 
       val fragment =
-        PlayerTOCFragment.newInstance(PlayerTOCFragmentParameters(
-          primaryColor = resources.getColor(R.color.example_tint_color)))
+        PlayerTOCFragment.newInstance(PlayerTOCFragmentParameters())
 
       this.supportFragmentManager
         .beginTransaction()
@@ -345,9 +344,8 @@ class ExamplePlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
      */
 
     ExampleUIThread.runOnUIThread(Runnable {
-      val fragment = PlayerSleepTimerFragment.newInstance(
-        PlayerFragmentParameters(
-          primaryColor = resources.getColor(R.color.example_tint_color)))
+      val fragment =
+        PlayerSleepTimerFragment.newInstance(PlayerFragmentParameters())
       fragment.show(this.supportFragmentManager, "PLAYER_SLEEP_TIMER")
     })
   }
@@ -360,9 +358,8 @@ class ExamplePlayerActivity : FragmentActivity(), PlayerFragmentListenerType {
      */
 
     ExampleUIThread.runOnUIThread(Runnable {
-      val fragment = PlayerPlaybackRateFragment.newInstance(
-        PlayerFragmentParameters(
-          primaryColor = resources.getColor(R.color.example_tint_color)))
+      val fragment =
+        PlayerPlaybackRateFragment.newInstance(PlayerFragmentParameters())
       fragment.show(this.supportFragmentManager, "PLAYER_RATE")
     })
   }
