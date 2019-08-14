@@ -1,4 +1,4 @@
-package org.nypl.audiobook.demo.android.main_ui
+package org.librarysimplified.audiobook.demo.main_ui
 
 import java.io.Serializable
 

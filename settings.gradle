@@ -1,5 +1,3 @@
-rootProject.name = 'org.nypl.audiobook.demo.android'
+rootProject.name = 'org.librarysimplified.audiobook.demo'
 
-include ':org.nypl.audiobook.demo.android.main_ui'
-
-project(':org.nypl.audiobook.demo.android.main_ui').projectDir = "$rootDir/org.nypl.audiobook.demo.android.main_ui" as File
+include ':org.librarysimplified.audiobook.demo.main_ui'

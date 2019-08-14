@@ -1,0 +1,52 @@
+/*
+ * Copy some properties from the local.properties file into a properties file used to populate
+ * various fields in the application.
+ */
+
+task generatePropertiesResources {
+  def local_props_file = new File(project.rootProject.projectDir, "local.properties")
+  def local_props = new Properties()
+  local_props.load(new FileInputStream(local_props_file))
+
+  def borrow_uri = local_props.get("feed.borrow_uri")
+
+  if (borrow_uri == null) {
+    throw new IllegalArgumentException("Please specify feed.borrow_uri in local.properties")
+  }
+
+  def directory = new File(project.projectDir, "src/main/assets").absoluteFile
+  directory.mkdirs()
+  def file = new File(directory, "app.properties")
+  file.createNewFile()
+
+  def properties = new Properties()
+  properties.setProperty("feed.borrow_uri", borrow_uri)
+  properties.store(new FileOutputStream(file), "Automatically generated - DO NOT EDIT")
+}
+
+preBuild.dependsOn generatePropertiesResources
+
+dependencies {
+  annotationProcessor libraries.googleAutoValue
+
+  implementation libraries.androidXCore
+  implementation libraries.androidXRecyclerView
+  implementation libraries.kotlinStdlib
+  implementation libraries.logbackAndroid
+  implementation libraries.nyplAudiobookAPI
+  implementation libraries.nyplAudiobookDownloads
+  implementation libraries.nyplAudiobookManifestNYPL
+  implementation libraries.nyplAudiobookOpenAccess
+  implementation libraries.nyplAudiobookViews
+  implementation libraries.okhttp
+  implementation libraries.slf4j
+
+  if (project.hasProperty("org.librarysimplified.audiobook.demo.with_findaway")) {
+    if (project.property("org.librarysimplified.audiobook.demo.with_findaway") == "true") {
+      implementation libraries.nyplAudiobookAudioEngine
+    }
+  }
+
+  compileOnly libraries.jcip
+}
+

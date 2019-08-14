@@ -1,4 +1,4 @@
-package org.nypl.audiobook.demo.android.main_ui
+package org.librarysimplified.audiobook.demo.main_ui
 
 import android.app.Activity
 import android.content.Context
@@ -14,7 +14,7 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.Spinner
 import android.widget.TextView
-import org.nypl.audiobook.android.api.PlayerAudioEngineProviderType
+import org.librarysimplified.audiobook.api.PlayerAudioEngineProviderType
 import org.slf4j.LoggerFactory
 import java.net.URI
 import java.util.Properties

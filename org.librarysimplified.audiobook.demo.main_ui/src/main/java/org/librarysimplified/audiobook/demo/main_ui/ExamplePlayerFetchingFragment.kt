@@ -1,11 +1,11 @@
-package org.nypl.audiobook.demo.android.main_ui
+package org.librarysimplified.audiobook.demo.main_ui
 
 import android.os.Bundle
-import android.support.v4.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.fragment.app.Fragment
 
 /**
  * A mindlessly simple fragment that just shows a piece of explanatory text and a progress

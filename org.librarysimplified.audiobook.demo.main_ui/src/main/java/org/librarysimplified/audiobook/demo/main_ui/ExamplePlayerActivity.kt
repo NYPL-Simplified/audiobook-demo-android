@@ -1,11 +1,10 @@
-package org.nypl.audiobook.demo.android.main_ui
+package org.librarysimplified.audiobook.demo.main_ui
 
 import android.content.Intent
 import android.os.Bundle
-import android.support.v4.app.FragmentActivity
-import android.support.v7.app.AppCompatActivity
 import android.widget.ImageView
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import com.google.common.util.concurrent.ListeningExecutorService
 import com.google.common.util.concurrent.MoreExecutors
 import okhttp3.Call
@@ -14,24 +13,24 @@ import okhttp3.Credentials
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
-import org.nypl.audiobook.android.api.PlayerAudioBookType
-import org.nypl.audiobook.android.api.PlayerAudioEngineRequest
-import org.nypl.audiobook.android.api.PlayerAudioEngines
-import org.nypl.audiobook.android.api.PlayerManifest
-import org.nypl.audiobook.android.api.PlayerManifests
-import org.nypl.audiobook.android.api.PlayerResult
-import org.nypl.audiobook.android.api.PlayerSleepTimer
-import org.nypl.audiobook.android.api.PlayerSleepTimerType
-import org.nypl.audiobook.android.api.PlayerType
-import org.nypl.audiobook.android.downloads.DownloadProvider
-import org.nypl.audiobook.android.views.PlayerAccessibilityEvent
-import org.nypl.audiobook.android.views.PlayerFragment
-import org.nypl.audiobook.android.views.PlayerFragmentListenerType
-import org.nypl.audiobook.android.views.PlayerFragmentParameters
-import org.nypl.audiobook.android.views.PlayerPlaybackRateFragment
-import org.nypl.audiobook.android.views.PlayerSleepTimerFragment
-import org.nypl.audiobook.android.views.PlayerTOCFragment
-import org.nypl.audiobook.android.views.PlayerTOCFragmentParameters
+import org.librarysimplified.audiobook.api.PlayerAudioBookType
+import org.librarysimplified.audiobook.api.PlayerAudioEngineRequest
+import org.librarysimplified.audiobook.api.PlayerAudioEngines
+import org.librarysimplified.audiobook.api.PlayerManifest
+import org.librarysimplified.audiobook.api.PlayerManifests
+import org.librarysimplified.audiobook.api.PlayerResult
+import org.librarysimplified.audiobook.api.PlayerSleepTimer
+import org.librarysimplified.audiobook.api.PlayerSleepTimerType
+import org.librarysimplified.audiobook.api.PlayerType
+import org.librarysimplified.audiobook.downloads.DownloadProvider
+import org.librarysimplified.audiobook.views.PlayerAccessibilityEvent
+import org.librarysimplified.audiobook.views.PlayerFragment
+import org.librarysimplified.audiobook.views.PlayerFragmentListenerType
+import org.librarysimplified.audiobook.views.PlayerFragmentParameters
+import org.librarysimplified.audiobook.views.PlayerPlaybackRateFragment
+import org.librarysimplified.audiobook.views.PlayerSleepTimerFragment
+import org.librarysimplified.audiobook.views.PlayerTOCFragment
+import org.librarysimplified.audiobook.views.PlayerTOCFragmentParameters
 import org.slf4j.LoggerFactory
 import java.io.IOException
 import java.util.concurrent.Executors
@@ -111,7 +110,7 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
     }
 
     val parameters: PlayerParameters =
-      args.getSerializable(ExamplePlayerActivity.FETCH_PARAMETERS_ID) as PlayerParameters
+      args.getSerializable(FETCH_PARAMETERS_ID) as PlayerParameters
 
     this.doInitialManifestRequest(parameters)
   }
@@ -366,14 +365,7 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
 
   override fun onPlayerTOCWantsClose() {
     this.log.debug("onPlayerTOCWantsClose")
-
-    /*
-     * The player fragment wants to close the table of contents dialog. Pop it from the back
-     * stack and set the action bar title back to the original title.
-     */
-
     this.supportFragmentManager.popBackStack()
-    this.actionBar.setTitle(R.string.example_player_title)
   }
 
   override fun onPlayerWantsTitle(): String {
