@@ -134,7 +134,13 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
       try {
         this.player.close()
       } catch (e: Exception) {
-        this.log.error("error shutting down player: ", e)
+        this.log.error("error closing player: ", e)
+      }
+
+      try {
+        this.book.close()
+      } catch (e: Exception) {
+        this.log.error("error closing book: ", e)
       }
     }
   }
