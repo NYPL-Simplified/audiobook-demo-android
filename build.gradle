@@ -45,7 +45,7 @@ ext {
   }
 
   nyplAudioBookAPIVersion = "3.0.0-beta003"
-  nyplAudioBookAudioEngineVersion = "3.0.2-beta004"
+  nyplAudioBookAudioEngineVersion = "3.0.2-beta005"
 }
 
 ext.libraries = [
