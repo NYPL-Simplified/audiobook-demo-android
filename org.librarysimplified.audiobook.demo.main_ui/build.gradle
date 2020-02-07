@@ -35,7 +35,7 @@ dependencies {
   implementation libraries.logbackAndroid
   implementation libraries.nyplAudiobookAPI
   implementation libraries.nyplAudiobookDownloads
-  implementation libraries.nyplAudiobookManifestNYPL
+  implementation libraries.nyplAudiobookManifestWebPub
   implementation libraries.nyplAudiobookOpenAccess
   implementation libraries.nyplAudiobookViews
   implementation libraries.okhttp

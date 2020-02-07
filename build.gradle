@@ -44,8 +44,8 @@ ext {
     nexusPassword = ""
   }
 
-  nyplAudioBookAPIVersion = "3.0.0-beta003"
-  nyplAudioBookAudioEngineVersion = "3.0.2-beta005"
+  nyplAudioBookAPIVersion = "4.0.0-SNAPSHOT"
+  nyplAudioBookAudioEngineVersion = "4.0.0-SNAPSHOT"
 }
 
 ext.libraries = [
@@ -76,7 +76,7 @@ ext.libraries = [
   nyplAudiobookAPI           : "org.librarysimplified.audiobook:org.librarysimplified.audiobook.api:${nyplAudioBookAPIVersion}",
   nyplAudiobookAudioEngine   : "org.librarysimplified.audiobook.audioengine:org.librarysimplified.audiobook.audioengine.core:${nyplAudioBookAudioEngineVersion}",
   nyplAudiobookDownloads     : "org.librarysimplified.audiobook:org.librarysimplified.audiobook.downloads:${nyplAudioBookAPIVersion}",
-  nyplAudiobookManifestNYPL  : "org.librarysimplified.audiobook:org.librarysimplified.audiobook.manifest.nypl:${nyplAudioBookAPIVersion}",
+  nyplAudiobookManifestWebPub: "org.librarysimplified.audiobook:org.librarysimplified.audiobook.manifest_parser.webpub:${nyplAudioBookAPIVersion}",
   nyplAudiobookOpenAccess    : "org.librarysimplified.audiobook:org.librarysimplified.audiobook.open_access:${nyplAudioBookAPIVersion}",
   nyplAudiobookViews         : "org.librarysimplified.audiobook:org.librarysimplified.audiobook.views:${nyplAudioBookAPIVersion}",
   okhttp                     : "com.squareup.okhttp3:okhttp:3.14.1",
@@ -272,8 +272,12 @@ Automatic-Module-Name: ${POM_AUTOMATIC_MODULE_NAME}
   }
 
   repositories {
-    mavenCentral()
     mavenLocal()
+    mavenCentral()
+    maven {
+      url "https://oss.sonatype.org/content/repositories/snapshots/"
+    }
+
     jcenter()
     google()
 

@@ -16,13 +16,14 @@ import okhttp3.Response
 import org.librarysimplified.audiobook.api.PlayerAudioBookType
 import org.librarysimplified.audiobook.api.PlayerAudioEngineRequest
 import org.librarysimplified.audiobook.api.PlayerAudioEngines
-import org.librarysimplified.audiobook.api.PlayerManifest
-import org.librarysimplified.audiobook.api.PlayerManifests
 import org.librarysimplified.audiobook.api.PlayerResult
 import org.librarysimplified.audiobook.api.PlayerSleepTimer
 import org.librarysimplified.audiobook.api.PlayerSleepTimerType
 import org.librarysimplified.audiobook.api.PlayerType
 import org.librarysimplified.audiobook.downloads.DownloadProvider
+import org.librarysimplified.audiobook.manifest.api.PlayerManifest
+import org.librarysimplified.audiobook.manifest_parser.api.ManifestParsers
+import org.librarysimplified.audiobook.parser.api.ParseResult
 import org.librarysimplified.audiobook.views.PlayerAccessibilityEvent
 import org.librarysimplified.audiobook.views.PlayerFragment
 import org.librarysimplified.audiobook.views.PlayerFragmentListenerType
@@ -33,6 +34,7 @@ import org.librarysimplified.audiobook.views.PlayerTOCFragment
 import org.librarysimplified.audiobook.views.PlayerTOCFragmentParameters
 import org.slf4j.LoggerFactory
 import java.io.IOException
+import java.net.URI
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 
@@ -100,7 +102,11 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
 
       this.supportFragmentManager
         .beginTransaction()
-        .replace(R.id.example_player_fragment_holder, this.examplePlayerFetchingFragment, "PLAYER_FETCHING")
+        .replace(
+          R.id.example_player_fragment_holder,
+          this.examplePlayerFetchingFragment,
+          "PLAYER_FETCHING"
+        )
         .commit()
     }
 
@@ -152,7 +158,7 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
   private fun doInitialManifestRequest(parameters: PlayerParameters) {
     val client = OkHttpClient()
 
-    val request_builder =
+    val requestBuilder =
       Request.Builder()
         .url(parameters.fetchURI)
 
@@ -162,12 +168,13 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
 
     val credentials = parameters.credentials
     if (credentials != null) {
-      request_builder.header(
+      requestBuilder.header(
         "Authorization",
-        Credentials.basic(credentials.user, credentials.password))
+        Credentials.basic(credentials.user, credentials.password)
+      )
     }
 
-    val request = request_builder.build()
+    val request = requestBuilder.build()
 
     this.log.debug("fetching {}", parameters.fetchURI)
 
@@ -178,7 +185,7 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
       }
 
       override fun onResponse(call: Call?, response: Response?) {
-        this@ExamplePlayerActivity.onURIFetchSuccess(response!!)
+        this@ExamplePlayerActivity.onURIFetchSuccess(parameters, response!!)
       }
     })
   }
@@ -189,14 +196,18 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
       this.log,
       "Failed to fetch URI",
       e,
-      this.GO_BACK_TO_INITIAL_ACTIVITY)
+      this.GO_BACK_TO_INITIAL_ACTIVITY
+    )
   }
 
   /**
    * Fetching the manifest was successful.
    */
 
-  private fun onURIFetchSuccess(response: Response) {
+  private fun onURIFetchSuccess(
+    parameters: PlayerParameters,
+    response: Response
+  ) {
     this.log.debug("onURIFetchSuccess: {}", response)
 
     ExampleUIThread.runOnUIThread(Runnable {
@@ -210,18 +221,20 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
     if (response.isSuccessful) {
       val stream = response.body()!!.byteStream()
       stream.use { _ ->
-        val result = PlayerManifests.parse(stream)
+        val result =
+          ManifestParsers.parse(URI.create(parameters.fetchURI), stream.readBytes())
         when (result) {
-          is PlayerResult.Success -> {
+          is ParseResult.Success -> {
             this.onProcessManifest(result.result)
           }
-          is PlayerResult.Failure -> {
+          is ParseResult.Failure -> {
             ExampleErrorDialogUtilities.showErrorWithRunnable(
               this@ExamplePlayerActivity,
               this.log,
               "Failed to parse manifest",
-              result.failure,
-              this.GO_BACK_TO_INITIAL_ACTIVITY)
+              null,
+              this.GO_BACK_TO_INITIAL_ACTIVITY
+            )
           }
         }
       }
@@ -231,7 +244,8 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
         this.log,
         "Server returned a failure message: " + response.code() + " " + response.message(),
         null,
-        this.GO_BACK_TO_INITIAL_ACTIVITY)
+        this.GO_BACK_TO_INITIAL_ACTIVITY
+      )
     }
   }
 
@@ -242,11 +256,14 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
      * Ask the API for the best audio engine available that can handle the given manifest.
      */
 
-    val engine = PlayerAudioEngines.findBestFor(
-      PlayerAudioEngineRequest(
-        manifest = manifest,
-        filter = { true },
-        downloadProvider = DownloadProvider.create(this.downloadExecutor)))
+    val engine =
+      PlayerAudioEngines.findBestFor(
+        PlayerAudioEngineRequest(
+          manifest = manifest,
+          filter = { true },
+          downloadProvider = DownloadProvider.create(this.downloadExecutor)
+        )
+      )
 
     if (engine == null) {
       ExampleErrorDialogUtilities.showErrorWithRunnable(
@@ -254,14 +271,16 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
         this.log,
         "No audio engine available to handle the given book",
         null,
-        this.GO_BACK_TO_INITIAL_ACTIVITY)
+        this.GO_BACK_TO_INITIAL_ACTIVITY
+      )
       return
     }
 
     this.log.debug(
       "selected audio engine: {} {}",
       engine.engineProvider.name(),
-      engine.engineProvider.version())
+      engine.engineProvider.version()
+    )
 
     /*
      * Create the audio book.
@@ -274,7 +293,8 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
         this.log,
         "Error parsing manifest",
         bookResult.failure,
-        this.GO_BACK_TO_INITIAL_ACTIVITY)
+        this.GO_BACK_TO_INITIAL_ACTIVITY
+      )
       return
     }
 
