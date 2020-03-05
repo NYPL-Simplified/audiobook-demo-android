@@ -15,7 +15,7 @@
 
   <application
     android:allowBackup="false"
-    android:icon="@drawable/example_icon"
+    android:icon="@mipmap/ic_launcher"
     android:theme="@style/AudioBooksWithActionBar"
     android:label="@string/exAppName">
 
