@@ -29,7 +29,8 @@ class ExampleErrorDialogUtilities {
       log: Logger,
       message: String,
       x: Throwable?,
-      r: Runnable) {
+      r: Runnable
+    ) {
       log.error("{}: ", message, x)
 
       ExampleUIThread.runOnUIThread(

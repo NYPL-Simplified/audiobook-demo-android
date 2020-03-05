@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+  xmlns:app="http://schemas.android.com/apk/res-auto"
+  xmlns:tools="http://schemas.android.com/tools"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent">
+
+  <TextView
+    android:id="@+id/exLocationLabel"
+    android:layout_width="0dp"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="16dp"
+    android:layout_marginTop="16dp"
+    android:layout_marginEnd="16dp"
+    android:labelFor="@id/exLocation"
+    android:text="@string/exLocation"
+    android:textAllCaps="false"
+    android:textSize="18sp"
+    android:textStyle="bold"
+    app:layout_constraintEnd_toEndOf="parent"
+    app:layout_constraintStart_toStartOf="parent"
+    app:layout_constraintTop_toTopOf="parent" />
+
+  <EditText
+    android:id="@+id/exLocation"
+    android:layout_width="0dp"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="16dp"
+    android:layout_marginTop="16dp"
+    android:layout_marginEnd="16dp"
+    android:ems="10"
+    android:fontFamily="monospace"
+    android:hint="http://www.example.com/"
+    android:inputType="textPersonName"
+    app:layout_constraintEnd_toEndOf="parent"
+    app:layout_constraintStart_toStartOf="parent"
+    app:layout_constraintTop_toBottomOf="@id/exLocationLabel" />
+
+  <TextView
+    android:id="@+id/exAuthentication"
+    android:layout_width="0dp"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="16dp"
+    android:layout_marginTop="16dp"
+    android:layout_marginEnd="16dp"
+    android:labelFor="@id/exAuthenticationSelection"
+    android:text="@string/exAuthentication"
+    android:textAllCaps="false"
+    android:textSize="18sp"
+    android:textStyle="bold"
+    app:layout_constraintEnd_toEndOf="parent"
+    app:layout_constraintStart_toStartOf="parent"
+    app:layout_constraintTop_toBottomOf="@id/exLocation" />
+
+  <Spinner
+    android:id="@+id/exAuthenticationSelection"
+    android:layout_width="0dp"
+    android:layout_height="64dp"
+    android:layout_marginStart="16dp"
+    android:layout_marginTop="16dp"
+    android:layout_marginEnd="16dp"
+    android:background="@drawable/ex_spinner_border"
+    android:entries="@array/exAuthenticationTypes"
+    app:layout_constraintEnd_toEndOf="parent"
+    app:layout_constraintStart_toStartOf="parent"
+    app:layout_constraintTop_toBottomOf="@+id/exAuthentication" />
+
+  <androidx.constraintlayout.widget.ConstraintLayout
+    android:id="@+id/exAuthenticationBasicParameters"
+    android:layout_width="0dp"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="16dp"
+    android:layout_marginTop="16dp"
+    android:layout_marginEnd="16dp"
+    app:layout_constraintEnd_toEndOf="parent"
+    app:layout_constraintStart_toStartOf="parent"
+    app:layout_constraintTop_toBottomOf="@+id/exAuthenticationSelection">
+
+    <TextView
+      android:id="@+id/exAuthenticationBasicUserLabel"
+      android:layout_width="128dp"
+      android:layout_height="wrap_content"
+      android:labelFor="@id/exAuthenticationBasicUser"
+      android:text="@string/exAuthenticationBasicUser"
+      android:textSize="18sp"
+      app:layout_constraintBaseline_toBaselineOf="@id/exAuthenticationBasicUser"
+      app:layout_constraintStart_toStartOf="parent" />
+
+    <EditText
+      android:id="@+id/exAuthenticationBasicUser"
+      android:layout_width="0dp"
+      android:layout_height="wrap_content"
+      android:ems="10"
+      android:fontFamily="monospace"
+      android:inputType="textPersonName"
+      app:layout_constraintEnd_toEndOf="parent"
+      app:layout_constraintStart_toEndOf="@id/exAuthenticationBasicUserLabel"
+      app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+      android:id="@+id/exAuthenticationBasicPasswordLabel"
+      android:layout_width="128dp"
+      android:layout_height="wrap_content"
+      android:labelFor="@id/exAuthenticationBasicPassword"
+      android:text="@string/exAuthenticationBasicPassword"
+      android:textSize="18sp"
+      app:layout_constraintBaseline_toBaselineOf="@id/exAuthenticationBasicPassword"
+      app:layout_constraintStart_toStartOf="parent" />
+
+    <EditText
+      android:id="@+id/exAuthenticationBasicPassword"
+      android:layout_width="0dp"
+      android:layout_height="wrap_content"
+      android:ems="10"
+      android:fontFamily="monospace"
+      android:inputType="textPersonName"
+      app:layout_constraintEnd_toEndOf="parent"
+      app:layout_constraintStart_toEndOf="@id/exAuthenticationBasicPasswordLabel"
+      app:layout_constraintTop_toBottomOf="@id/exAuthenticationBasicUser" />
+
+  </androidx.constraintlayout.widget.ConstraintLayout>
+
+  <Button
+    android:id="@+id/exPlay"
+    android:layout_width="128dp"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="16dp"
+    android:layout_marginTop="32dp"
+    android:layout_marginEnd="16dp"
+    android:text="@string/exPlay"
+    app:layout_constraintEnd_toEndOf="parent"
+    app:layout_constraintStart_toStartOf="parent"
+    app:layout_constraintTop_toBottomOf="@+id/exAuthenticationBasicParameters" />
+
+  <TextView
+    android:id="@+id/exPresetsLabel"
+    android:layout_width="0dp"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="16dp"
+    android:layout_marginEnd="16dp"
+    android:layout_marginBottom="16dp"
+    android:labelFor="@id/exPresets"
+    android:text="@string/exPresets"
+    android:textSize="18sp"
+    android:textStyle="bold"
+    app:layout_constraintBottom_toTopOf="@id/exPresets"
+    app:layout_constraintEnd_toEndOf="parent"
+    app:layout_constraintStart_toStartOf="parent" />
+
+  <Spinner
+    android:id="@+id/exPresets"
+    android:layout_width="0dp"
+    android:layout_height="64dp"
+    android:layout_marginStart="16dp"
+    android:layout_marginEnd="16dp"
+    android:layout_marginBottom="16dp"
+    android:background="@drawable/ex_spinner_border"
+    app:layout_constraintBottom_toBottomOf="parent"
+    app:layout_constraintEnd_toEndOf="parent"
+    app:layout_constraintStart_toStartOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

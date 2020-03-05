@@ -1,18 +1,11 @@
 package org.librarysimplified.audiobook.demo.main_ui
 
-import android.content.Intent
 import android.os.Bundle
 import android.widget.ImageView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.google.common.util.concurrent.ListeningExecutorService
 import com.google.common.util.concurrent.MoreExecutors
-import okhttp3.Call
-import okhttp3.Callback
-import okhttp3.Credentials
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.Response
 import org.librarysimplified.audiobook.api.PlayerAudioBookType
 import org.librarysimplified.audiobook.api.PlayerAudioEngineRequest
 import org.librarysimplified.audiobook.api.PlayerAudioEngines
@@ -22,6 +15,12 @@ import org.librarysimplified.audiobook.api.PlayerSleepTimerType
 import org.librarysimplified.audiobook.api.PlayerType
 import org.librarysimplified.audiobook.downloads.DownloadProvider
 import org.librarysimplified.audiobook.manifest.api.PlayerManifest
+import org.librarysimplified.audiobook.manifest_fulfill.api.ManifestFulfillmentStrategies
+import org.librarysimplified.audiobook.manifest_fulfill.basic.ManifestFulfillmentBasicCredentials
+import org.librarysimplified.audiobook.manifest_fulfill.basic.ManifestFulfillmentBasicParameters
+import org.librarysimplified.audiobook.manifest_fulfill.basic.ManifestFulfillmentBasicType
+import org.librarysimplified.audiobook.manifest_fulfill.spi.ManifestFulfillmentErrorType
+import org.librarysimplified.audiobook.manifest_fulfill.spi.ManifestFulfillmentEvent
 import org.librarysimplified.audiobook.manifest_parser.api.ManifestParsers
 import org.librarysimplified.audiobook.parser.api.ParseResult
 import org.librarysimplified.audiobook.views.PlayerAccessibilityEvent
@@ -35,8 +34,10 @@ import org.librarysimplified.audiobook.views.PlayerTOCFragmentParameters
 import org.slf4j.LoggerFactory
 import java.io.IOException
 import java.net.URI
+import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.TimeUnit
 
 class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
 
@@ -45,16 +46,6 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
   companion object {
     const val FETCH_PARAMETERS_ID =
       "org.nypl.audiobook.demo.android.with_fragments.PlayerActivity.PARAMETERS_ID"
-  }
-
-  /**
-   * A runnable that finishes this activity and goes back to the initial one.
-   */
-
-  private val GO_BACK_TO_INITIAL_ACTIVITY = Runnable {
-    val intent = Intent(this@ExamplePlayerActivity, ExampleInitialActivity::class.java)
-    this.startActivity(intent)
-    this.finish()
   }
 
   private lateinit var examplePlayerFetchingFragment: ExamplePlayerFetchingFragment
@@ -73,10 +64,10 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
 
     this.setTheme(R.style.AudioBooksWithActionBar)
     this.setContentView(R.layout.example_player_activity)
-    this.supportActionBar?.setTitle(R.string.example_player_title)
+    this.supportActionBar?.setTitle(R.string.exAppName)
 
     /*
-     * Create an executor for download threads, and for scheduling UI events. Each thread is
+     * Create executors for download threads, and for scheduling UI events. Each thread is
      * assigned a useful name for correct blame assignment during debugging.
      */
 
@@ -84,18 +75,23 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
       MoreExecutors.listeningDecorator(
         Executors.newFixedThreadPool(4) { r: Runnable? ->
           val thread = Thread(r)
-          thread.name = "org.nypl.audiobook.demo.android.with_fragments.downloader-${thread.id}"
+          thread.name = "org.librarysimplified.audiobook.demo.main_ui.downloader-${thread.id}"
           thread
         })
 
     this.uiScheduledExecutor =
       Executors.newSingleThreadScheduledExecutor { r: Runnable? ->
         val thread = Thread(r)
-        thread.name = "org.nypl.audiobook.demo.android.with_fragments.ui-schedule-${thread.id}"
+        thread.name = "org.librarysimplified.audiobook.demo.main_ui.ui-schedule-${thread.id}"
         thread
       }
 
     this.sleepTimer = PlayerSleepTimer.create()
+
+    /*
+     * Create a fragment that shows an indefinite progress bar whilst we do the work
+     * of downloading and parsing manifests.
+     */
 
     if (state == null) {
       this.examplePlayerFetchingFragment = ExamplePlayerFetchingFragment.newInstance()
@@ -110,15 +106,28 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
         .commit()
     }
 
-    val args = this.intent.extras
-    if (args == null) {
-      throw IllegalStateException("No arguments passed to activity")
-    }
+    val args =
+      this.intent.extras ?: throw IllegalStateException("No arguments passed to activity")
+    val parameters: ExamplePlayerParameters =
+      args.getSerializable(FETCH_PARAMETERS_ID) as ExamplePlayerParameters
 
-    val parameters: PlayerParameters =
-      args.getSerializable(FETCH_PARAMETERS_ID) as PlayerParameters
+    /*
+     * Start the manifest asynchronously downloading in the background. When the
+     * download/parsing operation completes, we will open an audio player using the
+     * parsed manifest.
+     */
 
-    this.doInitialManifestRequest(parameters)
+    val manifestFuture =
+      this.downloadExecutor.submit(Callable {
+        return@Callable this.downloadAndParseManifestShowingErrors(parameters)
+      })
+
+    manifestFuture.addListener(
+      Runnable {
+        this.openPlayerForManifest(manifestFuture.get(3L, TimeUnit.SECONDS))
+      },
+      MoreExecutors.directExecutor()
+    )
   }
 
   override fun onDestroy() {
@@ -152,105 +161,117 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
   }
 
   /**
-   * Fetch the manifest from the remote server.
+   * Attempt to parse a manifest file.
    */
 
-  private fun doInitialManifestRequest(parameters: PlayerParameters) {
-    val client = OkHttpClient()
-
-    val requestBuilder =
-      Request.Builder()
-        .url(parameters.fetchURI)
-
-    /*
-     * Use basic auth if a username and password were given.
-     */
-
-    val credentials = parameters.credentials
-    if (credentials != null) {
-      requestBuilder.header(
-        "Authorization",
-        Credentials.basic(credentials.user, credentials.password)
-      )
-    }
-
-    val request = requestBuilder.build()
-
-    this.log.debug("fetching {}", parameters.fetchURI)
-
-    val call = client.newCall(request)
-    call.enqueue(object : Callback {
-      override fun onFailure(call: Call?, e: IOException?) {
-        this@ExamplePlayerActivity.onURIFetchFailure(e)
-      }
-
-      override fun onResponse(call: Call?, response: Response?) {
-        this@ExamplePlayerActivity.onURIFetchSuccess(parameters, response!!)
-      }
-    })
-  }
-
-  private fun onURIFetchFailure(e: IOException?) {
-    ExampleErrorDialogUtilities.showErrorWithRunnable(
-      this@ExamplePlayerActivity,
-      this.log,
-      "Failed to fetch URI",
-      e,
-      this.GO_BACK_TO_INITIAL_ACTIVITY
-    )
+  private fun parseManifest(
+    source: URI,
+    data: ByteArray
+  ): ParseResult<PlayerManifest> {
+    this.log.debug("parseManifest")
+    return ManifestParsers.parse(source, data)
   }
 
   /**
-   * Fetching the manifest was successful.
+   * Attempt to synchronously download a manifest file. If the download fails, return the
+   * error details.
    */
 
-  private fun onURIFetchSuccess(
-    parameters: PlayerParameters,
-    response: Response
-  ) {
-    this.log.debug("onURIFetchSuccess: {}", response)
+  private fun downloadManifest(
+    parameters: ExamplePlayerParameters
+  ): PlayerResult<ByteArray, ManifestFulfillmentErrorType> {
+    this.log.debug("downloadManifest")
 
-    ExampleUIThread.runOnUIThread(Runnable {
-      this.examplePlayerFetchingFragment.setMessageTextId(R.string.example_fetch_processing_manifest)
-    })
+    val credentials = parameters.credentials
 
-    /*
-     * If the manifest can be parsed, parse it and update the player. Otherwise fail loudly.
-     */
+    val strategies =
+      ManifestFulfillmentStrategies.findStrategy(ManifestFulfillmentBasicType::class.java)
+        ?: throw UnsupportedOperationException()
 
-    if (response.isSuccessful) {
-      val stream = response.body()!!.byteStream()
-      stream.use { _ ->
-        val result =
-          ManifestParsers.parse(URI.create(parameters.fetchURI), stream.readBytes())
-        when (result) {
-          is ParseResult.Success -> {
-            this.onProcessManifest(result.result)
-          }
-          is ParseResult.Failure -> {
-            ExampleErrorDialogUtilities.showErrorWithRunnable(
-              this@ExamplePlayerActivity,
-              this.log,
-              "Failed to parse manifest",
-              null,
-              this.GO_BACK_TO_INITIAL_ACTIVITY
-            )
-          }
-        }
+    val fulfillCredentials =
+      if (credentials is ExamplePlayerCredentials.Basic) {
+        ManifestFulfillmentBasicCredentials(
+          userName = credentials.userName,
+          password = credentials.password
+        )
+      } else {
+        null
       }
-    } else {
-      ExampleErrorDialogUtilities.showErrorWithRunnable(
-        this@ExamplePlayerActivity,
-        this.log,
-        "Server returned a failure message: " + response.code() + " " + response.message(),
-        null,
-        this.GO_BACK_TO_INITIAL_ACTIVITY
+
+    val strategy =
+      strategies.create(
+        ManifestFulfillmentBasicParameters(
+          uri = URI.create(parameters.fetchURI),
+          credentials = fulfillCredentials
+        )
       )
+
+    val fulfillSubscription =
+      strategy.events.subscribe { event ->
+        this.onManifestFulfillmentEvent(event)
+      }
+
+    try {
+      return strategy.execute()
+    } finally {
+      fulfillSubscription.unsubscribe()
     }
   }
 
-  private fun onProcessManifest(manifest: PlayerManifest) {
-    this.log.debug("onProcessManifest")
+  private fun onManifestFulfillmentEvent(event: ManifestFulfillmentEvent) {
+    ExampleUIThread.runOnUIThread(Runnable {
+      this.examplePlayerFetchingFragment.setMessageText(event.message)
+    })
+  }
+
+  /**
+   * Attempt to download and parse the audio book manifest. This composes [downloadManifest]
+   * and [parseManifest], with the main difference that errors are logged to the UI thread on
+   * failure and the activity is closed.
+   */
+
+  private fun downloadAndParseManifestShowingErrors(
+    parameters: ExamplePlayerParameters
+  ): PlayerManifest {
+    this.log.debug("downloadAndParseManifestShowingErrors")
+
+    val downloadResult = this.downloadManifest(parameters)
+    if (downloadResult is PlayerResult.Failure) {
+      val exception = IOException()
+      ExampleErrorDialogUtilities.showErrorWithRunnable(
+        this@ExamplePlayerActivity,
+        this.log,
+        "Failed to download manifest: ${downloadResult.failure.message}",
+        exception,
+        Runnable {
+          this.finish()
+        }
+      )
+      throw exception
+    }
+
+    val (downloadBytes) = downloadResult as PlayerResult.Success
+    val parseResult = this.parseManifest(URI.create(parameters.fetchURI), downloadBytes)
+    if (parseResult is ParseResult.Failure) {
+      val exception = IOException()
+      ExampleErrorDialogUtilities.showErrorWithRunnable(
+        this@ExamplePlayerActivity,
+        this.log,
+        "Failed to parse manifest: ${parseResult.errors[0].message}",
+        exception,
+        Runnable {
+          this.finish()
+        }
+      )
+      throw exception
+    }
+
+    val (_, parsedManifest) = parseResult as ParseResult.Success
+    return parsedManifest
+  }
+
+  private fun openPlayerForManifest(manifest: PlayerManifest) {
+    this.log.debug("openPlayerForManifest")
 
     /*
      * Ask the API for the best audio engine available that can handle the given manifest.
@@ -271,7 +292,9 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
         this.log,
         "No audio engine available to handle the given book",
         null,
-        this.GO_BACK_TO_INITIAL_ACTIVITY
+        Runnable {
+          this.finish()
+        }
       )
       return
     }
@@ -293,7 +316,9 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
         this.log,
         "Error parsing manifest",
         bookResult.failure,
-        this.GO_BACK_TO_INITIAL_ACTIVITY
+        Runnable {
+          this.finish()
+        }
       )
       return
     }
@@ -301,7 +326,7 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
     this.book = (bookResult as PlayerResult.Success).result
     this.bookTitle = manifest.metadata.title
     this.bookAuthor = "Unknown Author"
-    this.player = book.createPlayer()
+    this.player = this.book.createPlayer()
     this.playerInitialized = true
 
     /*
@@ -348,7 +373,7 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
      */
 
     ExampleUIThread.runOnUIThread(Runnable {
-      this.supportActionBar?.setTitle(R.string.example_player_toc_title)
+      this.supportActionBar?.setTitle(R.string.exTableOfContents)
 
       val fragment =
         PlayerTOCFragment.newInstance(PlayerTOCFragmentParameters())

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<Presets>
+  <Preset
+    name="Archive.org (The Word Of An Engineer)"
+    location="https://api.archivelab.org/books/wordofengineer_1403.poem_librivox/opds_audio_manifest">
+    <AuthenticationNone/>
+  </Preset>
+
+  <Preset
+    name="Flatland"
+    location="https://raw.githubusercontent.com/HadrienGardeur/audiobook-manifest/gh-pages/examples/flatland.audiobook-manifest">
+    <AuthenticationNone/>
+  </Preset>
+
+  <Preset
+    name="Archive.org (Tom Sawyer)"
+    location="https://api.archivelab.org/books/tom_sawyer_librivox/opds_audio_manifest">
+    <AuthenticationNone/>
+  </Preset>
+
+  <Preset
+    name="io7m Demo"
+    location="http://ataxia.io7m.com/2018/08/02/open_access_0.json">
+    <AuthenticationNone/>
+  </Preset>
+</Presets>

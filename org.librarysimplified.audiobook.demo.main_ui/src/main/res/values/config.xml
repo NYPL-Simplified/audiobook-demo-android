@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<resources>
+  <string name="exAppName">AudioBook API Demo</string>
+  <string name="exAuthentication">Authentication</string>
+  <string name="exAuthenticationBasicPassword">Password</string>
+  <string name="exAuthenticationBasicUser">Username</string>
+  <string name="exLocation">Manifest Location</string>
+  <string name="exPlay">Play</string>
+  <string name="exPresets">Presets</string>
+  <string name="exTitle">AudioBook API Demo</string>
+  <string name="exAuthNone">None</string>
+  <string name="exAuthBasic">Basic (Username/Password)</string>
+  <array name="exAuthenticationTypes">
+    <item>@string/exAuthNone</item>
+    <item>@string/exAuthBasic</item>
+  </array>
+  <string name="exTableOfContents">Table Of Contents</string>
+
+  <!-- Set the primary color to a shade of blue. -->
+  <color name="audiobook_player_primary">#161aaf</color>
+
+  <!-- Enable the "now" setting in the sleep timer. -->
+  <bool name="audiobook_player_debug_sleep_timer_now_enabled">true</bool>
+</resources>

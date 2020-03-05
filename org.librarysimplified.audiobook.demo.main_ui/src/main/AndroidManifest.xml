@@ -16,10 +16,11 @@
   <application
     android:allowBackup="false"
     android:icon="@drawable/example_icon"
-    android:label="@string/example_app_name">
+    android:theme="@style/AudioBooksWithActionBar"
+    android:label="@string/exAppName">
 
     <activity
-      android:name=".ExampleInitialActivity"
+      android:name="org.librarysimplified.audiobook.demo.main_ui.ExampleConfigurationActivity"
       android:configChanges="orientation|keyboardHidden|screenSize"
       android:exported="true">
 
@@ -30,7 +31,7 @@
     </activity>
 
     <activity
-      android:name=".ExamplePlayerActivity"
+      android:name="org.librarysimplified.audiobook.demo.main_ui.ExamplePlayerActivity"
       android:configChanges="orientation|keyboardHidden|screenSize" />
 
   </application>

@@ -26,15 +26,25 @@ task generatePropertiesResources {
 
 preBuild.dependsOn generatePropertiesResources
 
+configurations.all {
+  resolutionStrategy {
+    force libraries.slf4j
+  }
+}
+
 dependencies {
   annotationProcessor libraries.googleAutoValue
 
+  implementation libraries.androidXConstraintLayout
   implementation libraries.androidXCore
   implementation libraries.androidXRecyclerView
   implementation libraries.kotlinStdlib
   implementation libraries.logbackAndroid
   implementation libraries.nyplAudiobookAPI
   implementation libraries.nyplAudiobookDownloads
+  implementation libraries.nyplAudiobookFeedbooks
+  implementation libraries.nyplAudiobookManifestFulfillAPI
+  implementation libraries.nyplAudiobookManifestFulfillBasic
   implementation libraries.nyplAudiobookManifestWebPub
   implementation libraries.nyplAudiobookOpenAccess
   implementation libraries.nyplAudiobookViews

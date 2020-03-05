@@ -25,7 +25,8 @@ class ExamplePlayerFetchingFragment : Fragment() {
   override fun onCreateView(
     inflater: LayoutInflater,
     container: ViewGroup?,
-    state: Bundle?): View? {
+    state: Bundle?
+  ): View? {
     return inflater.inflate(R.layout.example_player_fetch_view, container, false)
   }
 
@@ -47,7 +48,7 @@ class ExamplePlayerFetchingFragment : Fragment() {
     }
   }
 
-  fun setMessageTextId(textId: Int) {
-    this.fetchText.setText(textId)
+  fun setMessageText(text: String) {
+    this.fetchText.text = text
   }
 }
