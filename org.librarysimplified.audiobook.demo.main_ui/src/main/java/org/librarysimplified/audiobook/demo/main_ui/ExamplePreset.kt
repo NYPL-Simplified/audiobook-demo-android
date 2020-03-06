@@ -11,13 +11,8 @@ import java.net.URI
 data class ExamplePreset(
   val name: String,
   val uri: URI,
-  val authentication: Authentication
+  val credentials: ExamplePlayerCredentials
 ) {
-
-  enum class Authentication {
-    NONE,
-    BASIC
-  }
 
   companion object {
 
@@ -38,7 +33,7 @@ data class ExamplePreset(
     ): List<ExamplePreset> {
       var name = ""
       var location = ""
-      var auth = Authentication.NONE
+      var credentials = ExamplePlayerCredentials.None as ExamplePlayerCredentials
       val presets = mutableListOf<ExamplePreset>()
 
       while (true) {
@@ -56,10 +51,13 @@ data class ExamplePreset(
                 location = parser.getAttributeValue(null, "location")
               }
               "AuthenticationBasic" -> {
-                auth = Authentication.BASIC
+                credentials = ExamplePlayerCredentials.Basic(
+                  userName = parser.getAttributeValue(null, "user"),
+                  password = parser.getAttributeValue(null, "password")
+                )
               }
               "AuthenticationNone" -> {
-                auth = Authentication.NONE
+                credentials = ExamplePlayerCredentials.None
               }
               else -> {
 
@@ -74,7 +72,7 @@ data class ExamplePreset(
                   ExamplePreset(
                     name = name,
                     uri = URI.create(location),
-                    authentication = auth
+                    credentials = credentials
                   )
                 )
               }

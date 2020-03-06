@@ -160,11 +160,16 @@ class ExampleConfigurationActivity : AppCompatActivity() {
 
   private fun onSelectedPreset(preset: ExamplePreset) {
     this.location.text = preset.uri.toString()
-    this.onSelectedAuthentication(
-      when (preset.authentication) {
-        ExamplePreset.Authentication.NONE -> this.authNone
-        ExamplePreset.Authentication.BASIC -> this.authBasic
+
+    when (val credentials = preset.credentials) {
+      ExamplePlayerCredentials.None -> {
+        this.onSelectedAuthentication(this.authNone)
       }
-    )
+      is ExamplePlayerCredentials.Basic -> {
+        this.onSelectedAuthentication(this.authBasic)
+        this.authenticationBasicUser.text = credentials.userName
+        this.authenticationBasicPassword.text = credentials.password
+      }
+    }
   }
 }

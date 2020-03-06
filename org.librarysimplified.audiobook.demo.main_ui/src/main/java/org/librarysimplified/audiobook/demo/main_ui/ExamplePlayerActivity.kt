@@ -14,6 +14,10 @@ import org.librarysimplified.audiobook.api.PlayerSleepTimer
 import org.librarysimplified.audiobook.api.PlayerSleepTimerType
 import org.librarysimplified.audiobook.api.PlayerType
 import org.librarysimplified.audiobook.downloads.DownloadProvider
+import org.librarysimplified.audiobook.feedbooks.FeedbooksParserExtensions
+import org.librarysimplified.audiobook.license_check.api.LicenseChecks
+import org.librarysimplified.audiobook.license_check.spi.SingleLicenseCheckProviderType
+import org.librarysimplified.audiobook.license_check.spi.SingleLicenseCheckStatus
 import org.librarysimplified.audiobook.manifest.api.PlayerManifest
 import org.librarysimplified.audiobook.manifest_fulfill.api.ManifestFulfillmentStrategies
 import org.librarysimplified.audiobook.manifest_fulfill.basic.ManifestFulfillmentBasicCredentials
@@ -22,6 +26,7 @@ import org.librarysimplified.audiobook.manifest_fulfill.basic.ManifestFulfillmen
 import org.librarysimplified.audiobook.manifest_fulfill.spi.ManifestFulfillmentErrorType
 import org.librarysimplified.audiobook.manifest_fulfill.spi.ManifestFulfillmentEvent
 import org.librarysimplified.audiobook.manifest_parser.api.ManifestParsers
+import org.librarysimplified.audiobook.manifest_parser.extension_spi.ManifestParserExtensionType
 import org.librarysimplified.audiobook.parser.api.ParseResult
 import org.librarysimplified.audiobook.views.PlayerAccessibilityEvent
 import org.librarysimplified.audiobook.views.PlayerFragment
@@ -34,6 +39,7 @@ import org.librarysimplified.audiobook.views.PlayerTOCFragmentParameters
 import org.slf4j.LoggerFactory
 import java.io.IOException
 import java.net.URI
+import java.util.ServiceLoader
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
@@ -169,7 +175,16 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
     data: ByteArray
   ): ParseResult<PlayerManifest> {
     this.log.debug("parseManifest")
-    return ManifestParsers.parse(source, data)
+
+    val extensions =
+      ServiceLoader.load(ManifestParserExtensionType::class.java)
+        .toList()
+
+    return ManifestParsers.parse(
+      uri = source,
+      streams = data,
+      extensions = extensions
+    )
   }
 
   /**
@@ -225,9 +240,41 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
   }
 
   /**
+   * Attempt to perform any required license checks on the manifest.
+   */
+
+  private fun checkManifest(
+    manifest: PlayerManifest
+  ): Boolean {
+    val singleChecks =
+      ServiceLoader.load(SingleLicenseCheckProviderType::class.java)
+        .toList()
+    val check =
+      LicenseChecks.createLicenseCheck(manifest, singleChecks)
+
+    val checkSubscription =
+      check.events.subscribe { event ->
+      this.onLicenseCheckEvent(event)
+    }
+
+    try {
+      val checkResult = check.execute()
+      return checkResult.checkSucceeded()
+    } finally {
+      checkSubscription.unsubscribe()
+    }
+  }
+
+  private fun onLicenseCheckEvent(event: SingleLicenseCheckStatus) {
+    ExampleUIThread.runOnUIThread(Runnable {
+      this.examplePlayerFetchingFragment.setMessageText(event.message)
+    })
+  }
+
+  /**
    * Attempt to download and parse the audio book manifest. This composes [downloadManifest]
-   * and [parseManifest], with the main difference that errors are logged to the UI thread on
-   * failure and the activity is closed.
+   * [parseManifest], and [checkManifest], with the main difference that errors are logged to the
+   * UI thread on failure and the activity is closed.
    */
 
   private fun downloadAndParseManifestShowingErrors(
@@ -267,6 +314,20 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
     }
 
     val (_, parsedManifest) = parseResult as ParseResult.Success
+    if (!checkManifest(parsedManifest)) {
+      val exception = IOException()
+      ExampleErrorDialogUtilities.showErrorWithRunnable(
+        this@ExamplePlayerActivity,
+        this.log,
+        "One or more license checks failed for the audio book manifest.",
+        exception,
+        Runnable {
+          this.finish()
+        }
+      )
+      throw exception
+    }
+
     return parsedManifest
   }
 

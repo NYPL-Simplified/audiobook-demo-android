@@ -77,6 +77,7 @@ ext.libraries = [
   nyplAudiobookAudioEngine         : "org.librarysimplified.audiobook.audioengine:org.librarysimplified.audiobook.audioengine.core:${nyplAudioBookAudioEngineVersion}",
   nyplAudiobookDownloads           : "org.librarysimplified.audiobook:org.librarysimplified.audiobook.downloads:${nyplAudioBookAPIVersion}",
   nyplAudiobookFeedbooks           : "org.librarysimplified.audiobook:org.librarysimplified.audiobook.feedbooks:${nyplAudioBookAPIVersion}",
+  nyplAudiobookLicenseCheckAPI     : "org.librarysimplified.audiobook:org.librarysimplified.audiobook.license_check.api:${nyplAudioBookAPIVersion}",
   nyplAudiobookManifestFulfillAPI  : "org.librarysimplified.audiobook:org.librarysimplified.audiobook.manifest_fulfill.api:${nyplAudioBookAPIVersion}",
   nyplAudiobookManifestFulfillBasic: "org.librarysimplified.audiobook:org.librarysimplified.audiobook.manifest_fulfill.basic:${nyplAudioBookAPIVersion}",
   nyplAudiobookManifestWebPub      : "org.librarysimplified.audiobook:org.librarysimplified.audiobook.manifest_parser.webpub:${nyplAudioBookAPIVersion}",
