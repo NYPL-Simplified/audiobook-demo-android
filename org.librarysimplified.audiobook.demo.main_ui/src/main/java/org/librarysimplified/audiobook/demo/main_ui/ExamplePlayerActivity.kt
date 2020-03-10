@@ -379,6 +379,11 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
       ServiceLoader.load(PlayerExtensionType::class.java)
         .toList()
 
+    this.log.debug("{} player extensions available", extensions.size)
+    extensions.forEachIndexed { index, extension ->
+      this.log.debug("[{}] extension: {}", index, extension.name)
+    }
+
     /*
      * Create the audio book.
      */
