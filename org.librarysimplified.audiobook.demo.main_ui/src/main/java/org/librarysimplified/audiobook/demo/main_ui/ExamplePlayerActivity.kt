@@ -13,6 +13,7 @@ import org.librarysimplified.audiobook.api.PlayerResult
 import org.librarysimplified.audiobook.api.PlayerSleepTimer
 import org.librarysimplified.audiobook.api.PlayerSleepTimerType
 import org.librarysimplified.audiobook.api.PlayerType
+import org.librarysimplified.audiobook.api.extensions.PlayerExtensionType
 import org.librarysimplified.audiobook.downloads.DownloadProvider
 import org.librarysimplified.audiobook.feedbooks.FeedbooksParserExtensions
 import org.librarysimplified.audiobook.license_check.api.LicenseChecks
@@ -130,7 +131,11 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
 
     manifestFuture.addListener(
       Runnable {
-        this.openPlayerForManifest(manifestFuture.get(3L, TimeUnit.SECONDS))
+        try {
+          this.openPlayerForManifest(manifestFuture.get(3L, TimeUnit.SECONDS))
+        } catch (e: Exception) {
+          this.log.error("error downloading manifest: ", e)
+        }
       },
       MoreExecutors.directExecutor()
     )
@@ -367,10 +372,23 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
     )
 
     /*
+     * Configure any extensions that we want to use.
+     */
+
+    val extensions =
+      ServiceLoader.load(PlayerExtensionType::class.java)
+        .toList()
+
+    /*
      * Create the audio book.
      */
 
-    val bookResult = engine.bookProvider.create(this)
+    val bookResult =
+      engine.bookProvider.create(
+        context = this,
+        extensions = extensions
+      )
+
     if (bookResult is PlayerResult.Failure) {
       ExampleErrorDialogUtilities.showErrorWithRunnable(
         this@ExamplePlayerActivity,
