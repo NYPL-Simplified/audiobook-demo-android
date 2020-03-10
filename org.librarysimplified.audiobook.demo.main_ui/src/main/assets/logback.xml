@@ -3,15 +3,17 @@
 <configuration debug="false">
 
   <!-- Create a logcat appender -->
-  <appender
-    name="LOG_CAT"
+  <appender name="LOG_CAT"
     class="ch.qos.logback.classic.android.LogcatAppender">
     <encoder>
       <pattern>%msg</pattern>
     </encoder>
   </appender>
 
-  <root level="TRACE">
+  <logger name="one.irradia.fieldrush.vanilla.FRParsers"
+    level="INFO" />
+
+  <root level="DEBUG">
     <appender-ref ref="LOG_CAT" />
   </root>
 
