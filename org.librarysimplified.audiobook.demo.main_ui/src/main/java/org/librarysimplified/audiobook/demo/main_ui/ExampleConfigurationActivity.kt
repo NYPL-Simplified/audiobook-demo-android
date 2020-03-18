@@ -13,12 +13,18 @@ import androidx.appcompat.app.AppCompatActivity
 
 class ExampleConfigurationActivity : AppCompatActivity() {
 
-  private lateinit var authenticationSelected: String
   private lateinit var authBasic: String
   private lateinit var authentication: Spinner
   private lateinit var authenticationBasic: ViewGroup
   private lateinit var authenticationBasicPassword: TextView
   private lateinit var authenticationBasicUser: TextView
+  private lateinit var authenticationFeedbooks: ViewGroup
+  private lateinit var authenticationFeedbooksPassword: TextView
+  private lateinit var authenticationFeedbooksUser: TextView
+  private lateinit var authenticationFeedbooksIssuer: TextView
+  private lateinit var authenticationFeedbooksSecret: TextView
+  private lateinit var authenticationSelected: String
+  private lateinit var authFeedbooks: String
   private lateinit var authItems: Array<String>
   private lateinit var authNone: String
   private lateinit var location: TextView
@@ -34,6 +40,8 @@ class ExampleConfigurationActivity : AppCompatActivity() {
       this.getString(R.string.exAuthNone)
     this.authBasic =
       this.getString(R.string.exAuthBasic)
+    this.authFeedbooks =
+      this.getString(R.string.exAuthBasicFeedbooks)
     this.authItems =
       this.resources.getStringArray(R.array.exAuthenticationTypes)
 
@@ -43,6 +51,18 @@ class ExampleConfigurationActivity : AppCompatActivity() {
       this.authenticationBasic.findViewById(R.id.exAuthenticationBasicUser)
     this.authenticationBasicPassword =
       this.authenticationBasic.findViewById(R.id.exAuthenticationBasicPassword)
+
+    this.authenticationFeedbooks =
+      this.findViewById(R.id.exAuthenticationFeedbooksParameters)
+    this.authenticationFeedbooksUser =
+      this.authenticationFeedbooks.findViewById(R.id.exAuthenticationFeedbooksUser)
+    this.authenticationFeedbooksPassword =
+      this.authenticationFeedbooks.findViewById(R.id.exAuthenticationFeedbooksPassword)
+    this.authenticationFeedbooksIssuer =
+      this.authenticationFeedbooks.findViewById(R.id.exAuthenticationFeedbooksIssuer)
+    this.authenticationFeedbooksSecret =
+      this.authenticationFeedbooks.findViewById(R.id.exAuthenticationFeedbooksSecret)
+
     this.authentication =
       this.findViewById(R.id.exAuthenticationSelection)
     this.authentication.adapter =
@@ -123,6 +143,15 @@ class ExampleConfigurationActivity : AppCompatActivity() {
         this.authNone -> {
           ExamplePlayerCredentials.None
         }
+        this.authFeedbooks -> {
+          ExamplePlayerCredentials.Feedbooks(
+            userName = this.authenticationFeedbooksUser.text.toString(),
+            password = this.authenticationFeedbooksPassword.text.toString(),
+            issuerURL = this.authenticationFeedbooksIssuer.text.toString(),
+            bearerTokenSecret = this.authenticationFeedbooksSecret.text.toString()
+          )
+        }
+
         else -> {
           throw UnsupportedOperationException()
         }
@@ -146,11 +175,17 @@ class ExampleConfigurationActivity : AppCompatActivity() {
     this.authentication.setSelection(this.authItems.indexOf(authentication))
 
     return when (authentication) {
+      this.authFeedbooks -> {
+        this.authenticationBasic.visibility = View.GONE
+        this.authenticationFeedbooks.visibility = View.VISIBLE
+      }
       this.authBasic -> {
         this.authenticationBasic.visibility = View.VISIBLE
+        this.authenticationFeedbooks.visibility = View.GONE
       }
       this.authNone -> {
         this.authenticationBasic.visibility = View.GONE
+        this.authenticationFeedbooks.visibility = View.GONE
       }
       else -> {
         throw UnsupportedOperationException()
@@ -171,9 +206,11 @@ class ExampleConfigurationActivity : AppCompatActivity() {
         this.authenticationBasicPassword.text = credentials.password
       }
       is ExamplePlayerCredentials.Feedbooks -> {
-        this.onSelectedAuthentication(this.authBasic)
-        this.authenticationBasicUser.text = credentials.userName
-        this.authenticationBasicPassword.text = credentials.password
+        this.onSelectedAuthentication(this.authFeedbooks)
+        this.authenticationFeedbooksUser.text = credentials.userName
+        this.authenticationFeedbooksPassword.text = credentials.password
+        this.authenticationFeedbooksIssuer.text = credentials.issuerURL
+        this.authenticationFeedbooksSecret.text = credentials.bearerTokenSecret
       }
     }
   }

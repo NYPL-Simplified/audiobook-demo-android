@@ -15,7 +15,6 @@ import org.librarysimplified.audiobook.api.PlayerSleepTimerType
 import org.librarysimplified.audiobook.api.PlayerType
 import org.librarysimplified.audiobook.api.extensions.PlayerExtensionType
 import org.librarysimplified.audiobook.downloads.DownloadProvider
-import org.librarysimplified.audiobook.feedbooks.FeedbooksParserExtensions
 import org.librarysimplified.audiobook.feedbooks.FeedbooksPlayerExtension
 import org.librarysimplified.audiobook.feedbooks.FeedbooksPlayerExtensionConfiguration
 import org.librarysimplified.audiobook.license_check.api.LicenseChecks
@@ -215,13 +214,22 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
         ?: throw UnsupportedOperationException()
 
     val fulfillCredentials =
-      if (credentials is ExamplePlayerCredentials.Basic) {
-        ManifestFulfillmentBasicCredentials(
-          userName = credentials.userName,
-          password = credentials.password
-        )
-      } else {
-        null
+      when (credentials) {
+        ExamplePlayerCredentials.None -> {
+          null
+        }
+        is ExamplePlayerCredentials.Basic -> {
+          ManifestFulfillmentBasicCredentials(
+            userName = credentials.userName,
+            password = credentials.password
+          )
+        }
+        is ExamplePlayerCredentials.Feedbooks -> {
+          ManifestFulfillmentBasicCredentials(
+            userName = credentials.userName,
+            password = credentials.password
+          )
+        }
       }
 
     val strategy =
@@ -265,8 +273,8 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
 
     val checkSubscription =
       check.events.subscribe { event ->
-      this.onLicenseCheckEvent(event)
-    }
+        this.onLicenseCheckEvent(event)
+      }
 
     try {
       val checkResult = check.execute()
@@ -447,15 +455,22 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
         .firstOrNull()
 
     if (feedbooksExtension != null) {
+      this.log.debug("feedbooks extension is present")
       when (val credentials = parameters.credentials) {
         is ExamplePlayerCredentials.Feedbooks -> {
-          feedbooksExtension.configuration = FeedbooksPlayerExtensionConfiguration(
-            bearerTokenSecret = credentials.bearerTokenSecret,
-            issuerURL = credentials.issuerURL
-          )
+          this.log.debug("configuring feedbooks extension")
+          feedbooksExtension.configuration =
+            FeedbooksPlayerExtensionConfiguration(
+              bearerTokenSecret = credentials.bearerTokenSecret,
+              issuerURL = credentials.issuerURL
+            )
+        }
+        else -> {
+          this.log.debug("no feedbooks extension configuration is necessary")
         }
       }
     }
+
     return extensions
   }
 

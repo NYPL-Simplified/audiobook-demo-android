@@ -66,58 +66,165 @@
     app:layout_constraintTop_toBottomOf="@+id/exAuthentication" />
 
   <androidx.constraintlayout.widget.ConstraintLayout
-    android:id="@+id/exAuthenticationBasicParameters"
+    android:id="@+id/exAuthenticationParameters"
     android:layout_width="0dp"
     android:layout_height="wrap_content"
-    android:layout_marginStart="16dp"
-    android:layout_marginTop="16dp"
-    android:layout_marginEnd="16dp"
     app:layout_constraintEnd_toEndOf="parent"
     app:layout_constraintStart_toStartOf="parent"
     app:layout_constraintTop_toBottomOf="@+id/exAuthenticationSelection">
 
-    <TextView
-      android:id="@+id/exAuthenticationBasicUserLabel"
-      android:layout_width="128dp"
-      android:layout_height="wrap_content"
-      android:labelFor="@id/exAuthenticationBasicUser"
-      android:text="@string/exAuthenticationBasicUser"
-      android:textSize="18sp"
-      app:layout_constraintBaseline_toBaselineOf="@id/exAuthenticationBasicUser"
-      app:layout_constraintStart_toStartOf="parent" />
-
-    <EditText
-      android:id="@+id/exAuthenticationBasicUser"
+    <androidx.constraintlayout.widget.ConstraintLayout
+      android:id="@+id/exAuthenticationBasicParameters"
       android:layout_width="0dp"
       android:layout_height="wrap_content"
-      android:ems="10"
-      android:fontFamily="monospace"
-      android:inputType="textPersonName"
+      android:layout_marginStart="16dp"
+      android:layout_marginTop="16dp"
+      android:layout_marginEnd="16dp"
       app:layout_constraintEnd_toEndOf="parent"
-      app:layout_constraintStart_toEndOf="@id/exAuthenticationBasicUserLabel"
-      app:layout_constraintTop_toTopOf="parent" />
+      app:layout_constraintStart_toStartOf="parent"
+      app:layout_constraintTop_toTopOf="parent"
+      app:layout_constraintBottom_toBottomOf="parent">
 
-    <TextView
-      android:id="@+id/exAuthenticationBasicPasswordLabel"
-      android:layout_width="128dp"
-      android:layout_height="wrap_content"
-      android:labelFor="@id/exAuthenticationBasicPassword"
-      android:text="@string/exAuthenticationBasicPassword"
-      android:textSize="18sp"
-      app:layout_constraintBaseline_toBaselineOf="@id/exAuthenticationBasicPassword"
-      app:layout_constraintStart_toStartOf="parent" />
+      <TextView
+        android:id="@+id/exAuthenticationBasicUserLabel"
+        android:layout_width="128dp"
+        android:layout_height="wrap_content"
+        android:labelFor="@id/exAuthenticationBasicUser"
+        android:text="@string/exAuthenticationBasicUser"
+        android:textSize="18sp"
+        app:layout_constraintBaseline_toBaselineOf="@id/exAuthenticationBasicUser"
+        app:layout_constraintStart_toStartOf="parent" />
 
-    <EditText
-      android:id="@+id/exAuthenticationBasicPassword"
+      <EditText
+        android:id="@+id/exAuthenticationBasicUser"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:ems="10"
+        android:fontFamily="monospace"
+        android:inputType="textPersonName"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/exAuthenticationBasicUserLabel"
+        app:layout_constraintTop_toTopOf="parent" />
+
+      <TextView
+        android:id="@+id/exAuthenticationBasicPasswordLabel"
+        android:layout_width="128dp"
+        android:layout_height="wrap_content"
+        android:labelFor="@id/exAuthenticationBasicPassword"
+        android:text="@string/exAuthenticationBasicPassword"
+        android:textSize="18sp"
+        app:layout_constraintBaseline_toBaselineOf="@id/exAuthenticationBasicPassword"
+        app:layout_constraintStart_toStartOf="parent" />
+
+      <EditText
+        android:id="@+id/exAuthenticationBasicPassword"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:ems="10"
+        android:fontFamily="monospace"
+        android:inputType="textPersonName"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/exAuthenticationBasicPasswordLabel"
+        app:layout_constraintTop_toBottomOf="@id/exAuthenticationBasicUser" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+      android:id="@+id/exAuthenticationFeedbooksParameters"
       android:layout_width="0dp"
       android:layout_height="wrap_content"
-      android:ems="10"
-      android:fontFamily="monospace"
-      android:inputType="textPersonName"
+      android:layout_marginStart="16dp"
+      android:layout_marginTop="16dp"
+      android:layout_marginEnd="16dp"
       app:layout_constraintEnd_toEndOf="parent"
-      app:layout_constraintStart_toEndOf="@id/exAuthenticationBasicPasswordLabel"
-      app:layout_constraintTop_toBottomOf="@id/exAuthenticationBasicUser" />
+      app:layout_constraintStart_toStartOf="parent"
+      app:layout_constraintTop_toTopOf="parent"
+      app:layout_constraintBottom_toBottomOf="parent">
 
+      <TextView
+        android:id="@+id/exAuthenticationFeedbooksUserLabel"
+        android:layout_width="128dp"
+        android:layout_height="wrap_content"
+        android:labelFor="@id/exAuthenticationFeedbooksUser"
+        android:text="@string/exAuthenticationFeedbooksUser"
+        android:textSize="18sp"
+        app:layout_constraintBaseline_toBaselineOf="@id/exAuthenticationFeedbooksUser"
+        app:layout_constraintStart_toStartOf="parent" />
+
+      <EditText
+        android:id="@+id/exAuthenticationFeedbooksUser"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:ems="10"
+        android:fontFamily="monospace"
+        android:inputType="textPersonName"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/exAuthenticationFeedbooksUserLabel"
+        app:layout_constraintTop_toTopOf="parent" />
+
+      <TextView
+        android:id="@+id/exAuthenticationFeedbooksPasswordLabel"
+        android:layout_width="128dp"
+        android:layout_height="wrap_content"
+        android:labelFor="@id/exAuthenticationFeedbooksPassword"
+        android:text="@string/exAuthenticationFeedbooksPassword"
+        android:textSize="18sp"
+        app:layout_constraintBaseline_toBaselineOf="@id/exAuthenticationFeedbooksPassword"
+        app:layout_constraintStart_toStartOf="parent" />
+
+      <EditText
+        android:id="@+id/exAuthenticationFeedbooksPassword"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:ems="10"
+        android:fontFamily="monospace"
+        android:inputType="textPersonName"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/exAuthenticationFeedbooksPasswordLabel"
+        app:layout_constraintTop_toBottomOf="@id/exAuthenticationFeedbooksUser" />
+
+      <TextView
+        android:id="@+id/exAuthenticationFeedbooksIssuerLabel"
+        android:layout_width="128dp"
+        android:layout_height="wrap_content"
+        android:labelFor="@id/exAuthenticationFeedbooksIssuer"
+        android:text="@string/exAuthenticationFeedbooksIssuer"
+        android:textSize="18sp"
+        app:layout_constraintBaseline_toBaselineOf="@id/exAuthenticationFeedbooksIssuer"
+        app:layout_constraintStart_toStartOf="parent" />
+
+      <EditText
+        android:id="@+id/exAuthenticationFeedbooksIssuer"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:ems="10"
+        android:fontFamily="monospace"
+        android:inputType="textPersonName"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/exAuthenticationFeedbooksIssuerLabel"
+        app:layout_constraintTop_toBottomOf="@id/exAuthenticationFeedbooksPassword" />
+
+      <TextView
+        android:id="@+id/exAuthenticationFeedbooksSecretLabel"
+        android:layout_width="128dp"
+        android:layout_height="wrap_content"
+        android:labelFor="@id/exAuthenticationFeedbooksSecret"
+        android:text="@string/exAuthenticationFeedbooksSecret"
+        android:textSize="18sp"
+        app:layout_constraintBaseline_toBaselineOf="@id/exAuthenticationFeedbooksSecret"
+        app:layout_constraintStart_toStartOf="parent" />
+
+      <EditText
+        android:id="@+id/exAuthenticationFeedbooksSecret"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:ems="10"
+        android:fontFamily="monospace"
+        android:inputType="textPersonName"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/exAuthenticationFeedbooksSecretLabel"
+        app:layout_constraintTop_toBottomOf="@id/exAuthenticationFeedbooksIssuer" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
   </androidx.constraintlayout.widget.ConstraintLayout>
 
   <Button
@@ -125,12 +232,13 @@
     android:layout_width="128dp"
     android:layout_height="wrap_content"
     android:layout_marginStart="16dp"
-    android:layout_marginTop="32dp"
+    android:layout_marginTop="16dp"
     android:layout_marginEnd="16dp"
+    android:layout_marginBottom="16dp"
     android:text="@string/exPlay"
     app:layout_constraintEnd_toEndOf="parent"
     app:layout_constraintStart_toStartOf="parent"
-    app:layout_constraintTop_toBottomOf="@+id/exAuthenticationBasicParameters" />
+    app:layout_constraintTop_toBottomOf="@id/exAuthenticationParameters" />
 
   <TextView
     android:id="@+id/exPresetsLabel"
