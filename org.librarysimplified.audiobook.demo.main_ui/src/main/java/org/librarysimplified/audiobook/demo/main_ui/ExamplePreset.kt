@@ -54,14 +54,14 @@ data class ExamplePreset(
 
               "AuthenticationBasic" -> {
                 credentials = ExamplePlayerCredentials.Basic(
-                  userName = parser.getAttributeValue(null, "user"),
+                  userName = parser.getAttributeValue(null, "userName"),
                   password = parser.getAttributeValue(null, "password")
                 )
               }
 
               "Feedbooks" -> {
                 credentials = ExamplePlayerCredentials.Feedbooks(
-                  userName = parser.getAttributeValue(null, "user"),
+                  userName = parser.getAttributeValue(null, "userName"),
                   password = parser.getAttributeValue(null, "password"),
                   bearerTokenSecret = parser.getAttributeValue(null, "bearerTokenSecret"),
                   issuerURL = parser.getAttributeValue(null, "issuerURL")
