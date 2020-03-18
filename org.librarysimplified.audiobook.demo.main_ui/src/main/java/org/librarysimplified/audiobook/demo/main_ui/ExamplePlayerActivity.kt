@@ -16,6 +16,8 @@ import org.librarysimplified.audiobook.api.PlayerType
 import org.librarysimplified.audiobook.api.extensions.PlayerExtensionType
 import org.librarysimplified.audiobook.downloads.DownloadProvider
 import org.librarysimplified.audiobook.feedbooks.FeedbooksParserExtensions
+import org.librarysimplified.audiobook.feedbooks.FeedbooksPlayerExtension
+import org.librarysimplified.audiobook.feedbooks.FeedbooksPlayerExtensionConfiguration
 import org.librarysimplified.audiobook.license_check.api.LicenseChecks
 import org.librarysimplified.audiobook.license_check.spi.SingleLicenseCheckProviderType
 import org.librarysimplified.audiobook.license_check.spi.SingleLicenseCheckStatus
@@ -24,6 +26,7 @@ import org.librarysimplified.audiobook.manifest_fulfill.api.ManifestFulfillmentS
 import org.librarysimplified.audiobook.manifest_fulfill.basic.ManifestFulfillmentBasicCredentials
 import org.librarysimplified.audiobook.manifest_fulfill.basic.ManifestFulfillmentBasicParameters
 import org.librarysimplified.audiobook.manifest_fulfill.basic.ManifestFulfillmentBasicType
+import org.librarysimplified.audiobook.manifest_fulfill.spi.ManifestFulfilled
 import org.librarysimplified.audiobook.manifest_fulfill.spi.ManifestFulfillmentErrorType
 import org.librarysimplified.audiobook.manifest_fulfill.spi.ManifestFulfillmentEvent
 import org.librarysimplified.audiobook.manifest_parser.api.ManifestParsers
@@ -132,7 +135,10 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
     manifestFuture.addListener(
       Runnable {
         try {
-          this.openPlayerForManifest(manifestFuture.get(3L, TimeUnit.SECONDS))
+          this.openPlayerForManifest(
+            parameters = parameters,
+            manifest = manifestFuture.get(3L, TimeUnit.SECONDS)
+          )
         } catch (e: Exception) {
           this.log.error("error downloading manifest: ", e)
         }
@@ -199,7 +205,7 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
 
   private fun downloadManifest(
     parameters: ExamplePlayerParameters
-  ): PlayerResult<ByteArray, ManifestFulfillmentErrorType> {
+  ): PlayerResult<ManifestFulfilled, ManifestFulfillmentErrorType> {
     this.log.debug("downloadManifest")
 
     val credentials = parameters.credentials
@@ -302,7 +308,7 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
       throw exception
     }
 
-    val (downloadBytes) = downloadResult as PlayerResult.Success
+    val (_, downloadBytes) = (downloadResult as PlayerResult.Success).result
     val parseResult = this.parseManifest(URI.create(parameters.fetchURI), downloadBytes)
     if (parseResult is ParseResult.Failure) {
       val exception = IOException()
@@ -336,7 +342,10 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
     return parsedManifest
   }
 
-  private fun openPlayerForManifest(manifest: PlayerManifest) {
+  private fun openPlayerForManifest(
+    parameters: ExamplePlayerParameters,
+    manifest: PlayerManifest
+  ) {
     this.log.debug("openPlayerForManifest")
 
     /*
@@ -371,18 +380,7 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
       engine.engineProvider.version()
     )
 
-    /*
-     * Configure any extensions that we want to use.
-     */
-
-    val extensions =
-      ServiceLoader.load(PlayerExtensionType::class.java)
-        .toList()
-
-    this.log.debug("{} player extensions available", extensions.size)
-    extensions.forEachIndexed { index, extension ->
-      this.log.debug("[{}] extension: {}", index, extension.name)
-    }
+    val extensions = this.configurePlayerExtensions(parameters)
 
     /*
      * Create the audio book.
@@ -425,6 +423,40 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
         .replace(R.id.example_player_fragment_holder, this.playerFragment, "PLAYER")
         .commit()
     })
+  }
+
+  /**
+   * Configure any extensions that we want to use.
+   */
+
+  private fun configurePlayerExtensions(
+    parameters: ExamplePlayerParameters
+  ): List<PlayerExtensionType> {
+
+    val extensions =
+      ServiceLoader.load(PlayerExtensionType::class.java)
+        .toList()
+
+    this.log.debug("{} player extensions available", extensions.size)
+    extensions.forEachIndexed { index, extension ->
+      this.log.debug("[{}] extension: {}", index, extension.name)
+    }
+
+    val feedbooksExtension: FeedbooksPlayerExtension? =
+      extensions.filterIsInstance(FeedbooksPlayerExtension::class.java)
+        .firstOrNull()
+
+    if (feedbooksExtension != null) {
+      when (val credentials = parameters.credentials) {
+        is ExamplePlayerCredentials.Feedbooks -> {
+          feedbooksExtension.configuration = FeedbooksPlayerExtensionConfiguration(
+            bearerTokenSecret = credentials.bearerTokenSecret,
+            issuerURL = credentials.issuerURL
+          )
+        }
+      }
+    }
+    return extensions
   }
 
   override fun onPlayerWantsPlayer(): PlayerType {

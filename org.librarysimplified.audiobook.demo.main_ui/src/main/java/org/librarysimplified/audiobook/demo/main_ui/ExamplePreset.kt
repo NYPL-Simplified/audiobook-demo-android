@@ -46,19 +46,32 @@ data class ExamplePreset(
               "Presets" -> {
 
               }
+
               "Preset" -> {
                 name = parser.getAttributeValue(null, "name")
                 location = parser.getAttributeValue(null, "location")
               }
+
               "AuthenticationBasic" -> {
                 credentials = ExamplePlayerCredentials.Basic(
                   userName = parser.getAttributeValue(null, "user"),
                   password = parser.getAttributeValue(null, "password")
                 )
               }
+
+              "Feedbooks" -> {
+                credentials = ExamplePlayerCredentials.Feedbooks(
+                  userName = parser.getAttributeValue(null, "user"),
+                  password = parser.getAttributeValue(null, "password"),
+                  bearerTokenSecret = parser.getAttributeValue(null, "bearerTokenSecret"),
+                  issuerURL = parser.getAttributeValue(null, "issuerURL")
+                )
+              }
+
               "AuthenticationNone" -> {
                 credentials = ExamplePlayerCredentials.None
               }
+
               else -> {
 
               }

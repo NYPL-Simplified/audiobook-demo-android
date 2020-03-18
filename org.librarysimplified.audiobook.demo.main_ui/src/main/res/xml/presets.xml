@@ -1,27 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<Presets>
+<Presets xmlns="urn:org.librarysimplified.audiobook.demo.presets:xml:1">
   <Preset
     name="Archive.org (The Word Of An Engineer)"
     location="https://api.archivelab.org/books/wordofengineer_1403.poem_librivox/opds_audio_manifest">
-    <AuthenticationNone/>
+    <AuthenticationNone />
   </Preset>
 
   <Preset
     name="Flatland"
     location="https://raw.githubusercontent.com/HadrienGardeur/audiobook-manifest/gh-pages/examples/flatland.audiobook-manifest">
-    <AuthenticationNone/>
+    <AuthenticationNone />
   </Preset>
 
   <Preset
     name="Archive.org (Tom Sawyer)"
     location="https://api.archivelab.org/books/tom_sawyer_librivox/opds_audio_manifest">
-    <AuthenticationNone/>
+    <AuthenticationNone />
   </Preset>
 
   <Preset
     name="io7m Demo"
     location="http://ataxia.io7m.com/2018/08/02/open_access_0.json">
-    <AuthenticationNone/>
+    <AuthenticationNone />
+  </Preset>
+
+  <Preset
+    name="DPLA Test 0"
+    location="http://qa.circulation.librarysimplified.org/DEX/works/349968/fulfill/25">
+    <AuthenticationNone />
   </Preset>
 </Presets>
