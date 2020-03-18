@@ -5,3 +5,4 @@ app.properties
 build
 gradle.properties
 local.properties
+presets.xml
