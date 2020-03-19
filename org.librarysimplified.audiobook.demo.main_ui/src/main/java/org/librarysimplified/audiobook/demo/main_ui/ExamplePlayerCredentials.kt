@@ -14,7 +14,7 @@ sealed class ExamplePlayerCredentials : Serializable {
   data class Feedbooks(
     val userName: String,
     val password: String,
-    val bearerTokenSecret: String,
+    val bearerTokenSecret: ByteArray,
     val issuerURL: String
   ) : ExamplePlayerCredentials()
 }

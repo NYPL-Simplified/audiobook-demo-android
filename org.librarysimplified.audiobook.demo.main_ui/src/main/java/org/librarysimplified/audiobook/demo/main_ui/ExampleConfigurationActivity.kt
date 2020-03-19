@@ -10,6 +10,7 @@ import android.widget.Button
 import android.widget.Spinner
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import org.librarysimplified.audiobook.json_web_token.JSONBase64String
 
 class ExampleConfigurationActivity : AppCompatActivity() {
 
@@ -144,11 +145,16 @@ class ExampleConfigurationActivity : AppCompatActivity() {
           ExamplePlayerCredentials.None
         }
         this.authFeedbooks -> {
+          val secretText =
+            this.authenticationFeedbooksSecret.text.toString()
+          val decoded =
+            JSONBase64String(secretText).decode()
+
           ExamplePlayerCredentials.Feedbooks(
             userName = this.authenticationFeedbooksUser.text.toString(),
             password = this.authenticationFeedbooksPassword.text.toString(),
             issuerURL = this.authenticationFeedbooksIssuer.text.toString(),
-            bearerTokenSecret = this.authenticationFeedbooksSecret.text.toString()
+            bearerTokenSecret = decoded
           )
         }
 
@@ -207,10 +213,12 @@ class ExampleConfigurationActivity : AppCompatActivity() {
       }
       is ExamplePlayerCredentials.Feedbooks -> {
         this.onSelectedAuthentication(this.authFeedbooks)
+
+        val encoded = JSONBase64String.encode(credentials.bearerTokenSecret)
         this.authenticationFeedbooksUser.text = credentials.userName
         this.authenticationFeedbooksPassword.text = credentials.password
         this.authenticationFeedbooksIssuer.text = credentials.issuerURL
-        this.authenticationFeedbooksSecret.text = credentials.bearerTokenSecret
+        this.authenticationFeedbooksSecret.text = encoded.text
       }
     }
   }

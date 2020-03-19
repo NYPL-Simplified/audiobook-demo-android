@@ -15,6 +15,7 @@ dependencies {
   implementation libraries.nyplAudiobookAPI
   implementation libraries.nyplAudiobookDownloads
   implementation libraries.nyplAudiobookFeedbooks
+  implementation libraries.nyplAudiobookJSONWebToken
   implementation libraries.nyplAudiobookLicenseCheckAPI
   implementation libraries.nyplAudiobookManifestFulfillAPI
   implementation libraries.nyplAudiobookManifestFulfillBasic

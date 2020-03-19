@@ -1,6 +1,7 @@
 package org.librarysimplified.audiobook.demo.main_ui
 
 import android.content.Context
+import org.librarysimplified.audiobook.json_web_token.JSONBase64String
 import org.xmlpull.v1.XmlPullParser
 import java.net.URI
 
@@ -60,10 +61,13 @@ data class ExamplePreset(
               }
 
               "Feedbooks" -> {
+                val encoded =
+                  parser.getAttributeValue(null, "bearerTokenSecret")
+
                 credentials = ExamplePlayerCredentials.Feedbooks(
                   userName = parser.getAttributeValue(null, "userName"),
                   password = parser.getAttributeValue(null, "password"),
-                  bearerTokenSecret = parser.getAttributeValue(null, "bearerTokenSecret"),
+                  bearerTokenSecret = JSONBase64String(encoded).decode(),
                   issuerURL = parser.getAttributeValue(null, "issuerURL")
                 )
               }
