@@ -13,10 +13,12 @@ import org.librarysimplified.audiobook.api.PlayerResult
 import org.librarysimplified.audiobook.api.PlayerSleepTimer
 import org.librarysimplified.audiobook.api.PlayerSleepTimerType
 import org.librarysimplified.audiobook.api.PlayerType
+import org.librarysimplified.audiobook.api.PlayerUserAgent
 import org.librarysimplified.audiobook.api.extensions.PlayerExtensionType
 import org.librarysimplified.audiobook.downloads.DownloadProvider
 import org.librarysimplified.audiobook.feedbooks.FeedbooksPlayerExtension
 import org.librarysimplified.audiobook.feedbooks.FeedbooksPlayerExtensionConfiguration
+import org.librarysimplified.audiobook.license_check.api.LicenseCheckParameters
 import org.librarysimplified.audiobook.license_check.api.LicenseChecks
 import org.librarysimplified.audiobook.license_check.spi.SingleLicenseCheckProviderType
 import org.librarysimplified.audiobook.license_check.spi.SingleLicenseCheckStatus
@@ -25,9 +27,13 @@ import org.librarysimplified.audiobook.manifest_fulfill.api.ManifestFulfillmentS
 import org.librarysimplified.audiobook.manifest_fulfill.basic.ManifestFulfillmentBasicCredentials
 import org.librarysimplified.audiobook.manifest_fulfill.basic.ManifestFulfillmentBasicParameters
 import org.librarysimplified.audiobook.manifest_fulfill.basic.ManifestFulfillmentBasicType
+import org.librarysimplified.audiobook.manifest_fulfill.opa.OPAManifestFulfillmentStrategyProviderType
+import org.librarysimplified.audiobook.manifest_fulfill.opa.OPAManifestURI
+import org.librarysimplified.audiobook.manifest_fulfill.opa.OPAParameters
 import org.librarysimplified.audiobook.manifest_fulfill.spi.ManifestFulfilled
 import org.librarysimplified.audiobook.manifest_fulfill.spi.ManifestFulfillmentErrorType
 import org.librarysimplified.audiobook.manifest_fulfill.spi.ManifestFulfillmentEvent
+import org.librarysimplified.audiobook.manifest_fulfill.spi.ManifestFulfillmentStrategyType
 import org.librarysimplified.audiobook.manifest_parser.api.ManifestParsers
 import org.librarysimplified.audiobook.manifest_parser.extension_spi.ManifestParserExtensionType
 import org.librarysimplified.audiobook.parser.api.ParseResult
@@ -40,9 +46,11 @@ import org.librarysimplified.audiobook.views.PlayerSleepTimerFragment
 import org.librarysimplified.audiobook.views.PlayerTOCFragment
 import org.librarysimplified.audiobook.views.PlayerTOCFragmentParameters
 import org.slf4j.LoggerFactory
+import java.io.File
 import java.io.IOException
 import java.net.URI
 import java.util.ServiceLoader
+import java.util.UUID
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
@@ -56,6 +64,8 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
     const val FETCH_PARAMETERS_ID =
       "org.nypl.audiobook.demo.android.with_fragments.PlayerActivity.PARAMETERS_ID"
   }
+
+  private val userAgent = PlayerUserAgent("org.librarysimplified.audiobook.demo.main_ui")
 
   private lateinit var examplePlayerFetchingFragment: ExamplePlayerFetchingFragment
   private lateinit var downloadExecutor: ListeningExecutorService
@@ -118,7 +128,7 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
     val args =
       this.intent.extras ?: throw IllegalStateException("No arguments passed to activity")
     val parameters: ExamplePlayerParameters =
-      args.getSerializable(FETCH_PARAMETERS_ID) as ExamplePlayerParameters
+      args.getSerializable(org.librarysimplified.audiobook.demo.main_ui.ExamplePlayerActivity.Companion.FETCH_PARAMETERS_ID) as ExamplePlayerParameters
 
     /*
      * Start the manifest asynchronously downloading in the background. When the
@@ -207,48 +217,96 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
   ): PlayerResult<ManifestFulfilled, ManifestFulfillmentErrorType> {
     this.log.debug("downloadManifest")
 
-    val credentials = parameters.credentials
-
-    val strategies =
-      ManifestFulfillmentStrategies.findStrategy(ManifestFulfillmentBasicType::class.java)
-        ?: throw UnsupportedOperationException()
-
-    val fulfillCredentials =
-      when (credentials) {
-        ExamplePlayerCredentials.None -> {
-          null
-        }
-        is ExamplePlayerCredentials.Basic -> {
-          ManifestFulfillmentBasicCredentials(
-            userName = credentials.userName,
-            password = credentials.password
-          )
-        }
-        is ExamplePlayerCredentials.Feedbooks -> {
-          ManifestFulfillmentBasicCredentials(
-            userName = credentials.userName,
-            password = credentials.password
-          )
-        }
-      }
-
-    val strategy =
-      strategies.create(
-        ManifestFulfillmentBasicParameters(
-          uri = URI.create(parameters.fetchURI),
-          credentials = fulfillCredentials
-        )
-      )
-
+    val credentials =
+      parameters.credentials
+    val strategy: ManifestFulfillmentStrategyType =
+      this.downloadStrategyForCredentials(credentials, parameters)
     val fulfillSubscription =
-      strategy.events.subscribe { event ->
-        this.onManifestFulfillmentEvent(event)
-      }
+      strategy.events.subscribe(this::onManifestFulfillmentEvent)
 
     try {
       return strategy.execute()
     } finally {
       fulfillSubscription.unsubscribe()
+    }
+  }
+
+  private fun downloadStrategyForCredentials(
+    credentials: ExamplePlayerCredentials,
+    parameters: ExamplePlayerParameters
+  ): ManifestFulfillmentStrategyType {
+    return when (credentials) {
+      ExamplePlayerCredentials.None -> {
+        val strategies =
+          ManifestFulfillmentStrategies.findStrategy(ManifestFulfillmentBasicType::class.java)
+            ?: throw UnsupportedOperationException()
+
+        strategies.create(
+          ManifestFulfillmentBasicParameters(
+            uri = URI.create(parameters.fetchURI),
+            credentials = null,
+            userAgent = this.userAgent
+          )
+        )
+      }
+
+      is ExamplePlayerCredentials.Basic -> {
+        val strategies =
+          ManifestFulfillmentStrategies.findStrategy(ManifestFulfillmentBasicType::class.java)
+            ?: throw UnsupportedOperationException()
+
+        val credentials =
+          ManifestFulfillmentBasicCredentials(
+            userName = credentials.userName,
+            password = credentials.password
+          )
+
+        strategies.create(
+          ManifestFulfillmentBasicParameters(
+            uri = URI.create(parameters.fetchURI),
+            credentials = credentials,
+            userAgent = this.userAgent
+          )
+        )
+      }
+
+      is ExamplePlayerCredentials.Feedbooks -> {
+        val strategies =
+          ManifestFulfillmentStrategies.findStrategy(ManifestFulfillmentBasicType::class.java)
+            ?: throw UnsupportedOperationException()
+
+        val credentials =
+          ManifestFulfillmentBasicCredentials(
+            userName = credentials.userName,
+            password = credentials.password
+          )
+
+        strategies.create(
+          ManifestFulfillmentBasicParameters(
+            uri = URI.create(parameters.fetchURI),
+            credentials = credentials,
+            userAgent = this.userAgent
+          )
+        )
+      }
+
+      is ExamplePlayerCredentials.Overdrive -> {
+        val strategies =
+          ManifestFulfillmentStrategies.findStrategy(
+            OPAManifestFulfillmentStrategyProviderType::class.java
+          ) ?: throw UnsupportedOperationException()
+
+        strategies.create(
+          OPAParameters(
+            userName = credentials.userName,
+            password = credentials.password,
+            clientKey = credentials.clientKey,
+            clientPass = credentials.clientPass,
+            targetURI = OPAManifestURI.Indirect(URI.create(parameters.fetchURI)),
+            userAgent = this.userAgent
+          )
+        )
+      }
     }
   }
 
@@ -269,7 +327,13 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
       ServiceLoader.load(SingleLicenseCheckProviderType::class.java)
         .toList()
     val check =
-      LicenseChecks.createLicenseCheck(manifest, singleChecks)
+      LicenseChecks.createLicenseCheck(
+        LicenseCheckParameters(
+          manifest = manifest,
+          userAgent = this.userAgent,
+          checks = singleChecks
+        )
+      )
 
     val checkSubscription =
       check.events.subscribe { event ->
@@ -317,7 +381,10 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
     }
 
     val (_, downloadBytes) = (downloadResult as PlayerResult.Success).result
-    val parseResult = this.parseManifest(URI.create(parameters.fetchURI), downloadBytes)
+    cacheManifest(downloadBytes)
+
+    val parseResult =
+      this.parseManifest(URI.create(parameters.fetchURI), downloadBytes)
     if (parseResult is ParseResult.Failure) {
       val exception = IOException()
       ExampleErrorDialogUtilities.showErrorWithRunnable(
@@ -333,7 +400,7 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
     }
 
     val (_, parsedManifest) = parseResult as ParseResult.Success
-    if (!checkManifest(parsedManifest)) {
+    if (!this.checkManifest(parsedManifest)) {
       val exception = IOException()
       ExampleErrorDialogUtilities.showErrorWithRunnable(
         this@ExamplePlayerActivity,
@@ -348,6 +415,15 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
     }
 
     return parsedManifest
+  }
+
+  private fun cacheManifest(
+    downloadBytes: ByteArray
+  ) {
+    val fileName = UUID.randomUUID().toString() + ".json"
+    val filePath = File(this.cacheDir, fileName)
+    this.log.debug("saved manifest at {}", filePath)
+    filePath.writeBytes(downloadBytes)
   }
 
   private fun openPlayerForManifest(
@@ -365,7 +441,8 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
         PlayerAudioEngineRequest(
           manifest = manifest,
           filter = { true },
-          downloadProvider = DownloadProvider.create(this.downloadExecutor)
+          downloadProvider = DownloadProvider.create(this.downloadExecutor),
+          userAgent = this.userAgent
         )
       )
 

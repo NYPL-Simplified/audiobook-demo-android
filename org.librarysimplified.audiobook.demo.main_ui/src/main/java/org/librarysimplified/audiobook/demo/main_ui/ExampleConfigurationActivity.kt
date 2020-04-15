@@ -11,23 +11,30 @@ import android.widget.Spinner
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import org.librarysimplified.audiobook.json_web_token.JSONBase64String
+import org.librarysimplified.audiobook.manifest_fulfill.opa.OPAPassword
 
 class ExampleConfigurationActivity : AppCompatActivity() {
 
   private lateinit var authBasic: String
   private lateinit var authentication: Spinner
   private lateinit var authenticationBasic: ViewGroup
+  private lateinit var authenticationOverdrive: ViewGroup
+  private lateinit var authenticationOverdrivePassword: TextView
+  private lateinit var authenticationOverdriveUser: TextView
+  private lateinit var authenticationOverdriveClientKey: TextView
+  private lateinit var authenticationOverdriveClientSecret: TextView
   private lateinit var authenticationBasicPassword: TextView
   private lateinit var authenticationBasicUser: TextView
   private lateinit var authenticationFeedbooks: ViewGroup
-  private lateinit var authenticationFeedbooksPassword: TextView
-  private lateinit var authenticationFeedbooksUser: TextView
   private lateinit var authenticationFeedbooksIssuer: TextView
+  private lateinit var authenticationFeedbooksPassword: TextView
   private lateinit var authenticationFeedbooksSecret: TextView
+  private lateinit var authenticationFeedbooksUser: TextView
   private lateinit var authenticationSelected: String
   private lateinit var authFeedbooks: String
   private lateinit var authItems: Array<String>
   private lateinit var authNone: String
+  private lateinit var authOverdrive: String
   private lateinit var location: TextView
   private lateinit var play: Button
   private lateinit var presets: Spinner
@@ -43,6 +50,8 @@ class ExampleConfigurationActivity : AppCompatActivity() {
       this.getString(R.string.exAuthBasic)
     this.authFeedbooks =
       this.getString(R.string.exAuthBasicFeedbooks)
+    this.authOverdrive =
+      this.getString(R.string.exAuthBasicOverdrive)
     this.authItems =
       this.resources.getStringArray(R.array.exAuthenticationTypes)
 
@@ -63,6 +72,17 @@ class ExampleConfigurationActivity : AppCompatActivity() {
       this.authenticationFeedbooks.findViewById(R.id.exAuthenticationFeedbooksIssuer)
     this.authenticationFeedbooksSecret =
       this.authenticationFeedbooks.findViewById(R.id.exAuthenticationFeedbooksSecret)
+
+    this.authenticationOverdrive =
+      this.findViewById(R.id.exAuthenticationOverdriveParameters)
+    this.authenticationOverdriveUser =
+      this.authenticationOverdrive.findViewById(R.id.exAuthenticationOverdriveUser)
+    this.authenticationOverdrivePassword =
+      this.authenticationOverdrive.findViewById(R.id.exAuthenticationOverdrivePassword)
+    this.authenticationOverdriveClientKey =
+      this.authenticationOverdrive.findViewById(R.id.exAuthenticationOverdriveClientKey)
+    this.authenticationOverdriveClientSecret =
+      this.authenticationOverdrive.findViewById(R.id.exAuthenticationOverdriveClientSecret)
 
     this.authentication =
       this.findViewById(R.id.exAuthenticationSelection)
@@ -158,6 +178,15 @@ class ExampleConfigurationActivity : AppCompatActivity() {
           )
         }
 
+        this.authOverdrive -> {
+          ExamplePlayerCredentials.Overdrive(
+            userName = this.authenticationOverdriveUser.text.toString(),
+            password = OPAPassword.Password(this.authenticationOverdrivePassword.text.toString()),
+            clientKey = this.authenticationOverdriveClientKey.text.toString(),
+            clientPass = this.authenticationOverdriveClientSecret.text.toString()
+          )
+        }
+
         else -> {
           throw UnsupportedOperationException()
         }
@@ -183,14 +212,22 @@ class ExampleConfigurationActivity : AppCompatActivity() {
     return when (authentication) {
       this.authFeedbooks -> {
         this.authenticationBasic.visibility = View.GONE
+        this.authenticationOverdrive.visibility = View.GONE
         this.authenticationFeedbooks.visibility = View.VISIBLE
       }
       this.authBasic -> {
         this.authenticationBasic.visibility = View.VISIBLE
+        this.authenticationOverdrive.visibility = View.GONE
         this.authenticationFeedbooks.visibility = View.GONE
       }
       this.authNone -> {
         this.authenticationBasic.visibility = View.GONE
+        this.authenticationOverdrive.visibility = View.GONE
+        this.authenticationFeedbooks.visibility = View.GONE
+      }
+      this.authOverdrive -> {
+        this.authenticationBasic.visibility = View.GONE
+        this.authenticationOverdrive.visibility = View.VISIBLE
         this.authenticationFeedbooks.visibility = View.GONE
       }
       else -> {
@@ -206,11 +243,13 @@ class ExampleConfigurationActivity : AppCompatActivity() {
       ExamplePlayerCredentials.None -> {
         this.onSelectedAuthentication(this.authNone)
       }
+
       is ExamplePlayerCredentials.Basic -> {
         this.onSelectedAuthentication(this.authBasic)
         this.authenticationBasicUser.text = credentials.userName
         this.authenticationBasicPassword.text = credentials.password
       }
+
       is ExamplePlayerCredentials.Feedbooks -> {
         this.onSelectedAuthentication(this.authFeedbooks)
 
@@ -219,6 +258,18 @@ class ExampleConfigurationActivity : AppCompatActivity() {
         this.authenticationFeedbooksPassword.text = credentials.password
         this.authenticationFeedbooksIssuer.text = credentials.issuerURL
         this.authenticationFeedbooksSecret.text = encoded.text
+      }
+
+      is ExamplePlayerCredentials.Overdrive -> {
+        this.onSelectedAuthentication(this.authOverdrive)
+        this.authenticationOverdriveUser.text = credentials.userName
+        this.authenticationOverdrivePassword.text =
+          when (val pass = credentials.password) {
+            OPAPassword.NotRequired -> ""
+            is OPAPassword.Password -> pass.password
+          }
+        this.authenticationOverdriveClientSecret.text = credentials.clientPass
+        this.authenticationOverdriveClientKey.text = credentials.clientKey
       }
     }
   }

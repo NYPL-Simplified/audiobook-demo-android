@@ -4,9 +4,14 @@
   <string name="exAppName">AudioBook API Demo</string>
   <string name="exAuthBasic">Basic (Username/Password)</string>
   <string name="exAuthBasicFeedbooks">Basic+Feedbooks (Username/Password)</string>
+  <string name="exAuthBasicOverdrive">Basic+Overdrive (Username/Password)</string>
   <string name="exAuthentication">Authentication</string>
   <string name="exAuthenticationBasicPassword">Password</string>
   <string name="exAuthenticationBasicUser">Username</string>
+  <string name="exAuthenticationOverdrivePassword">Password</string>
+  <string name="exAuthenticationOverdriveUser">Username</string>
+  <string name="exAuthenticationOverdriveClientKey">Client Key</string>
+  <string name="exAuthenticationOverdriveClientSecret">Client Secret</string>
   <string name="exAuthenticationFeedbooksIssuer">Issuer URL</string>
   <string name="exAuthenticationFeedbooksPassword">Password</string>
   <string name="exAuthenticationFeedbooksSecret">Secret</string>
@@ -20,6 +25,7 @@
     <item>@string/exAuthNone</item>
     <item>@string/exAuthBasic</item>
     <item>@string/exAuthBasicFeedbooks</item>
+    <item>@string/exAuthBasicOverdrive</item>
   </array>
   <string name="exTableOfContents">Table Of Contents</string>
 

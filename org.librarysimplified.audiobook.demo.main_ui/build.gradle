@@ -19,6 +19,7 @@ dependencies {
   implementation libraries.nyplAudiobookLicenseCheckAPI
   implementation libraries.nyplAudiobookManifestFulfillAPI
   implementation libraries.nyplAudiobookManifestFulfillBasic
+  implementation libraries.nyplAudiobookManifestFulfillOPA
   implementation libraries.nyplAudiobookManifestWebPub
   implementation libraries.nyplAudiobookOpenAccess
   implementation libraries.nyplAudiobookViews
@@ -28,6 +29,12 @@ dependencies {
   if (project.hasProperty("org.librarysimplified.audiobook.demo.with_findaway")) {
     if (project.property("org.librarysimplified.audiobook.demo.with_findaway") == "true") {
       implementation libraries.nyplAudiobookAudioEngine
+    }
+  }
+
+  if (project.hasProperty("org.librarysimplified.audiobook.demo.with_overdrive")) {
+    if (project.property("org.librarysimplified.audiobook.demo.with_overdrive") == "true") {
+      implementation libraries.nyplAudiobookOverdrive
     }
   }
 

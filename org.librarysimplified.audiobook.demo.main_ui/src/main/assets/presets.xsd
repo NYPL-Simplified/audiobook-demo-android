@@ -11,6 +11,7 @@
         <xsd:element ref="pr:AuthenticationNone" />
         <xsd:element ref="pr:AuthenticationBasic" />
         <xsd:element ref="pr:Feedbooks" />
+        <xsd:element ref="pr:Overdrive" />
       </xsd:choice>
 
       <xsd:attribute
@@ -69,6 +70,27 @@
         use="required" />
       <xsd:attribute
         name="issuerURL"
+        type="xsd:string"
+        use="required" />
+    </xsd:complexType>
+  </xsd:element>
+
+  <xsd:element name="Overdrive">
+    <xsd:complexType>
+      <xsd:attribute
+        name="userName"
+        type="xsd:string"
+        use="required" />
+      <xsd:attribute
+        name="password"
+        type="xsd:string"
+        use="required" />
+      <xsd:attribute
+        name="clientKey"
+        type="xsd:string"
+        use="required" />
+      <xsd:attribute
+        name="clientSecret"
         type="xsd:string"
         use="required" />
     </xsd:complexType>

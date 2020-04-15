@@ -130,6 +130,103 @@
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <androidx.constraintlayout.widget.ConstraintLayout
+      android:id="@+id/exAuthenticationOverdriveParameters"
+      android:layout_width="0dp"
+      android:layout_height="wrap_content"
+      android:layout_marginStart="16dp"
+      android:layout_marginTop="16dp"
+      android:layout_marginEnd="16dp"
+      app:layout_constraintEnd_toEndOf="parent"
+      app:layout_constraintStart_toStartOf="parent"
+      app:layout_constraintTop_toTopOf="parent"
+      app:layout_constraintBottom_toBottomOf="parent">
+
+      <TextView
+        android:id="@+id/exAuthenticationOverdriveUserLabel"
+        android:layout_width="128dp"
+        android:layout_height="wrap_content"
+        android:labelFor="@id/exAuthenticationOverdriveUser"
+        android:text="@string/exAuthenticationOverdriveUser"
+        android:textSize="18sp"
+        app:layout_constraintBaseline_toBaselineOf="@id/exAuthenticationOverdriveUser"
+        app:layout_constraintStart_toStartOf="parent" />
+
+      <EditText
+        android:id="@+id/exAuthenticationOverdriveUser"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:ems="10"
+        android:fontFamily="monospace"
+        android:inputType="textPersonName"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/exAuthenticationOverdriveUserLabel"
+        app:layout_constraintTop_toTopOf="parent" />
+
+      <TextView
+        android:id="@+id/exAuthenticationOverdrivePasswordLabel"
+        android:layout_width="128dp"
+        android:layout_height="wrap_content"
+        android:labelFor="@id/exAuthenticationOverdrivePassword"
+        android:text="@string/exAuthenticationOverdrivePassword"
+        android:textSize="18sp"
+        app:layout_constraintBaseline_toBaselineOf="@id/exAuthenticationOverdrivePassword"
+        app:layout_constraintStart_toStartOf="parent" />
+
+      <EditText
+        android:id="@+id/exAuthenticationOverdrivePassword"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:ems="10"
+        android:fontFamily="monospace"
+        android:inputType="textPersonName"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/exAuthenticationOverdrivePasswordLabel"
+        app:layout_constraintTop_toBottomOf="@id/exAuthenticationOverdriveUser" />
+
+      <TextView
+        android:id="@+id/exAuthenticationOverdriveClientKeyLabel"
+        android:layout_width="128dp"
+        android:layout_height="wrap_content"
+        android:labelFor="@id/exAuthenticationOverdriveClientKey"
+        android:text="@string/exAuthenticationOverdriveClientKey"
+        android:textSize="18sp"
+        app:layout_constraintBaseline_toBaselineOf="@id/exAuthenticationOverdriveClientKey"
+        app:layout_constraintStart_toStartOf="parent" />
+
+      <EditText
+        android:id="@+id/exAuthenticationOverdriveClientKey"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:ems="10"
+        android:fontFamily="monospace"
+        android:inputType="textPersonName"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/exAuthenticationOverdriveClientKeyLabel"
+        app:layout_constraintTop_toBottomOf="@id/exAuthenticationOverdrivePassword" />
+
+      <TextView
+        android:id="@+id/exAuthenticationOverdriveClientSecretLabel"
+        android:layout_width="128dp"
+        android:layout_height="wrap_content"
+        android:labelFor="@id/exAuthenticationOverdriveClientSecret"
+        android:text="@string/exAuthenticationOverdriveClientSecret"
+        android:textSize="18sp"
+        app:layout_constraintBaseline_toBaselineOf="@id/exAuthenticationOverdriveClientSecret"
+        app:layout_constraintStart_toStartOf="parent" />
+
+      <EditText
+        android:id="@+id/exAuthenticationOverdriveClientSecret"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:ems="10"
+        android:fontFamily="monospace"
+        android:inputType="textPersonName"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/exAuthenticationOverdriveClientSecretLabel"
+        app:layout_constraintTop_toBottomOf="@id/exAuthenticationOverdriveClientKey" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
       android:id="@+id/exAuthenticationFeedbooksParameters"
       android:layout_width="0dp"
       android:layout_height="wrap_content"

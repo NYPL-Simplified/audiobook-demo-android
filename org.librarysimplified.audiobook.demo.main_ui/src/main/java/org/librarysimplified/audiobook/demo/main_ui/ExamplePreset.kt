@@ -2,6 +2,7 @@ package org.librarysimplified.audiobook.demo.main_ui
 
 import android.content.Context
 import org.librarysimplified.audiobook.json_web_token.JSONBase64String
+import org.librarysimplified.audiobook.manifest_fulfill.opa.OPAPassword
 import org.xmlpull.v1.XmlPullParser
 import java.net.URI
 
@@ -57,6 +58,15 @@ data class ExamplePreset(
                 credentials = ExamplePlayerCredentials.Basic(
                   userName = parser.getAttributeValue(null, "userName"),
                   password = parser.getAttributeValue(null, "password")
+                )
+              }
+
+              "Overdrive" -> {
+                credentials = ExamplePlayerCredentials.Overdrive(
+                  userName = parser.getAttributeValue(null, "userName"),
+                  password = OPAPassword.Password(parser.getAttributeValue(null, "password")),
+                  clientKey = parser.getAttributeValue(null, "clientKey"),
+                  clientPass = parser.getAttributeValue(null, "clientSecret")
                 )
               }
 
