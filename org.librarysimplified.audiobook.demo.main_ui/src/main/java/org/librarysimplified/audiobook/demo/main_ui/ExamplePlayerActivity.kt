@@ -128,7 +128,7 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
     val args =
       this.intent.extras ?: throw IllegalStateException("No arguments passed to activity")
     val parameters: ExamplePlayerParameters =
-      args.getSerializable(org.librarysimplified.audiobook.demo.main_ui.ExamplePlayerActivity.Companion.FETCH_PARAMETERS_ID) as ExamplePlayerParameters
+      args.getSerializable(FETCH_PARAMETERS_ID) as ExamplePlayerParameters
 
     /*
      * Start the manifest asynchronously downloading in the background. When the
@@ -331,7 +331,8 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
         LicenseCheckParameters(
           manifest = manifest,
           userAgent = this.userAgent,
-          checks = singleChecks
+          checks = singleChecks,
+          cacheDirectory = cacheDir
         )
       )
 

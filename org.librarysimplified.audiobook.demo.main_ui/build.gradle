@@ -1,43 +1,26 @@
-configurations.all {
-  resolutionStrategy {
-    force libraries.slf4j
-  }
-}
-
 dependencies {
-  annotationProcessor libraries.googleAutoValue
-
-  implementation libraries.androidXConstraintLayout
-  implementation libraries.androidXCore
-  implementation libraries.androidXRecyclerView
-  implementation libraries.kotlinStdlib
-  implementation libraries.logbackAndroid
-  implementation libraries.nyplAudiobookAPI
-  implementation libraries.nyplAudiobookDownloads
-  implementation libraries.nyplAudiobookFeedbooks
-  implementation libraries.nyplAudiobookJSONWebToken
-  implementation libraries.nyplAudiobookLicenseCheckAPI
-  implementation libraries.nyplAudiobookManifestFulfillAPI
-  implementation libraries.nyplAudiobookManifestFulfillBasic
-  implementation libraries.nyplAudiobookManifestFulfillOPA
-  implementation libraries.nyplAudiobookManifestWebPub
-  implementation libraries.nyplAudiobookOpenAccess
-  implementation libraries.nyplAudiobookViews
-  implementation libraries.okhttp
-  implementation libraries.slf4j
+  implementation libs.androidx.activity
+  implementation libs.androidx.app.compat
+  implementation libs.kotlin.reflect
+  implementation libs.kotlin.stdlib
+  implementation libs.nypl.audiobook.api
+  implementation libs.nypl.audiobook.downloads
+  implementation libs.nypl.audiobook.feedbooks
+  implementation libs.nypl.audiobook.json.web.token
+  implementation libs.nypl.audiobook.manifest.fulfill.api
+  implementation libs.nypl.audiobook.manifest.fulfill.basic
+  implementation libs.nypl.audiobook.manifest.license.check.api
+  implementation libs.nypl.audiobook.manifest.parser.api
+  implementation libs.nypl.audiobook.manifest.parser.webpub
+  implementation libs.nypl.audiobook.open.access
+  implementation libs.nypl.audiobook.rbdigital
+  implementation libs.nypl.audiobook.views
+  implementation libs.nypl.overdrive
 
   if (project.hasProperty("org.librarysimplified.audiobook.demo.with_findaway")) {
     if (project.property("org.librarysimplified.audiobook.demo.with_findaway") == "true") {
-      implementation libraries.nyplAudiobookAudioEngine
+      implementation libs.nypl.findaway
     }
   }
-
-  if (project.hasProperty("org.librarysimplified.audiobook.demo.with_overdrive")) {
-    if (project.property("org.librarysimplified.audiobook.demo.with_overdrive") == "true") {
-      implementation libraries.nyplAudiobookOverdrive
-    }
-  }
-
-  compileOnly libraries.jcip
 }
 
