@@ -81,7 +81,6 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
   override fun onCreate(state: Bundle?) {
     super.onCreate(null)
 
-    this.setTheme(R.style.AudioBooksWithActionBar)
     this.setContentView(R.layout.example_player_activity)
     this.supportActionBar?.setTitle(R.string.exAppName)
 
