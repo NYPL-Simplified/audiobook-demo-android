@@ -3,6 +3,7 @@ dependencies {
   implementation libs.androidx.app.compat
   implementation libs.kotlin.reflect
   implementation libs.kotlin.stdlib
+  implementation libs.logback.android
   implementation libs.nypl.audiobook.api
   implementation libs.nypl.audiobook.downloads
   implementation libs.nypl.audiobook.feedbooks
@@ -16,6 +17,7 @@ dependencies {
   implementation libs.nypl.audiobook.rbdigital
   implementation libs.nypl.audiobook.views
   implementation libs.nypl.overdrive
+  implementation libs.nypl.theme
 
   if (project.hasProperty("org.librarysimplified.audiobook.demo.with_findaway")) {
     if (project.property("org.librarysimplified.audiobook.demo.with_findaway") == "true") {
@@ -24,3 +26,16 @@ dependencies {
   }
 }
 
+/*
+ * We currently have transitive dependencies that specify dependencies on newer versions
+ * of SLF4J. These are subtly incompatible with Logback-Android, and it will be a while before
+ * new versions appear of both artifacts. Remove this when both are updated!
+ */
+
+configurations.all {
+  final MinimalExternalModuleDependency dependency = libs.slf4j.get()
+  final String module = dependency.module.toString()
+  final String version = dependency.versionConstraint.requiredVersion
+  final String dependencyString = "$module:$version"
+  resolutionStrategy.force dependencyString
+}

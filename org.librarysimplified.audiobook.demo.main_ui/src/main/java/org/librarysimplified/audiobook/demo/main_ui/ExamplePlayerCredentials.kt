@@ -5,7 +5,9 @@ import java.io.Serializable
 
 sealed class ExamplePlayerCredentials : Serializable {
 
-  object None : ExamplePlayerCredentials()
+  data class None(
+    val unused: Int
+  ) : ExamplePlayerCredentials()
 
   data class Basic(
     val userName: String,

@@ -235,13 +235,15 @@ class ExamplePlayerActivity : AppCompatActivity(), PlayerFragmentListenerType {
     credentials: ExamplePlayerCredentials,
     parameters: ExamplePlayerParameters
   ): ManifestFulfillmentStrategyType {
+    this.log.debug("credentials: $credentials")
+
     return when (credentials) {
-      ExamplePlayerCredentials.None -> {
+      is ExamplePlayerCredentials.None -> {
         val strategies =
           ManifestFulfillmentStrategies.findStrategy(ManifestFulfillmentBasicType::class.java)
             ?: throw UnsupportedOperationException()
 
-        strategies.create(
+        return strategies.create(
           ManifestFulfillmentBasicParameters(
             uri = URI.create(parameters.fetchURI),
             credentials = null,

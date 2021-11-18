@@ -35,7 +35,7 @@ data class ExamplePreset(
     ): List<ExamplePreset> {
       var name = ""
       var location = ""
-      var credentials = ExamplePlayerCredentials.None as ExamplePlayerCredentials
+      var credentials = ExamplePlayerCredentials.None(23) as ExamplePlayerCredentials
       val presets = mutableListOf<ExamplePreset>()
 
       while (true) {
@@ -83,7 +83,7 @@ data class ExamplePreset(
               }
 
               "AuthenticationNone" -> {
-                credentials = ExamplePlayerCredentials.None
+                credentials = ExamplePlayerCredentials.None(23)
               }
 
               else -> {

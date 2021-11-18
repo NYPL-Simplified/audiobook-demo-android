@@ -162,7 +162,7 @@ class ExampleConfigurationActivity : AppCompatActivity() {
           )
         }
         this.authNone -> {
-          ExamplePlayerCredentials.None
+          ExamplePlayerCredentials.None(23)
         }
         this.authFeedbooks -> {
           val secretText =
@@ -240,7 +240,7 @@ class ExampleConfigurationActivity : AppCompatActivity() {
     this.location.text = preset.uri.toString()
 
     return when (val credentials = preset.credentials) {
-      ExamplePlayerCredentials.None -> {
+      is ExamplePlayerCredentials.None -> {
         this.onSelectedAuthentication(this.authNone)
       }
 
